@@ -97,7 +97,7 @@ class TelemetryIngestionServiceTest {
 
         System.out.printf("%nMax CV Device 1 (stable): %.4f%n", maxCvDevice1);
         System.out.printf("Max CV Device 2 (storm):  %.4f%n", maxCvDevice2);
-        
+
         assertThat(maxCvDevice2).isGreaterThan(maxCvDevice1);
     }
 
