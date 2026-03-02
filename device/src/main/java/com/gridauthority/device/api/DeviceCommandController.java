@@ -21,9 +21,8 @@ public class DeviceCommandController {
     @PostMapping("/command")
     public DeviceState command(@RequestBody DeviceCommandDTO command) {
         return switch (command.command()) {
-            case "SHUTDOWN" -> deviceStateService.shutdown();
-            case "RESTART"  -> deviceStateService.restart();
-            default -> throw new IllegalArgumentException("Unknown command: " + command.command());
+            case SHUTDOWN -> deviceStateService.shutdown();
+            case RESTART  -> deviceStateService.restart();
         };
     }
 }

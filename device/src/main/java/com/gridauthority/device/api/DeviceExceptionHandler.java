@@ -31,4 +31,9 @@ public class DeviceExceptionHandler {
         return Map.of("error", ex.getMessage());
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleInvalidCommand(HttpMessageNotReadableException ex) {
+        return Map.of("error", "Invalid command — accepted values: SHUTDOWN, RESTART");
+    }
 }
