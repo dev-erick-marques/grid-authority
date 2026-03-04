@@ -12,7 +12,6 @@ public class DeviceSimulationProperties {
     private String name;
     private Voltage voltage = new Voltage();
     private Schedule schedule = new Schedule();
-    private Coordinator coordinator = new Coordinator();
 
     @Getter
     @Setter
@@ -25,11 +24,5 @@ public class DeviceSimulationProperties {
     @Setter
     public static class Schedule {
         private long ms = 1000;
-    }
-
-    @Getter
-    @Setter
-    public static class Coordinator {
-        private String url = "http://localhost:8080";
     }
 }
