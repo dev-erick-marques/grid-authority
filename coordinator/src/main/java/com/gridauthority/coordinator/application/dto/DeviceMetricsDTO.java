@@ -1,5 +1,7 @@
 package com.gridauthority.coordinator.application.dto;
 
+import com.gridauthority.coordinator.domain.model.DeviceCommand;
+
 import java.time.Instant;
 
 public record DeviceMetricsDTO(
@@ -8,7 +10,6 @@ public record DeviceMetricsDTO(
         double mean,
         double std,
         double cv,
-        boolean shutdown,
-        String decision,
+        DeviceCommand command,
         Instant evaluatedAt
 ) {}
