@@ -10,5 +10,6 @@ public record DeviceTelemetryDTO(
         double voltage,
         DeviceState status,
         Instant timestamp,
+        String sourceUrl,
         String deviceConfigHash
 ) {}

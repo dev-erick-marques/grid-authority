@@ -2,6 +2,7 @@ package com.gridauthority.device.aplication.service;
 
 import com.gridauthority.device.aplication.dto.DeviceTelemetryDTO;
 import com.gridauthority.device.domain.model.DeviceState;
+import com.gridauthority.device.infrastructure.config.DeviceNetworkProperties;
 import com.gridauthority.device.infrastructure.config.DeviceSimulationProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.util.Random;
 public class VoltageSimulatorService {
 
     private final DeviceSimulationProperties properties;
+    private final DeviceNetworkProperties networkProperties;
     private final Random random = new Random();
 
     public DeviceTelemetryDTO generate(DeviceState state) {
@@ -26,6 +28,7 @@ public class VoltageSimulatorService {
                 voltage,
                 state,
                 Instant.now(),
+                networkProperties.getSourceUrl(),
                 "sha256:config-" + properties.getId()
         );
     }
