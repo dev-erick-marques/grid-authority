@@ -2,6 +2,7 @@ package com.gridauthority.coordinator.application.service;
 
 import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
 import com.gridauthority.coordinator.application.dto.DeviceTelemetryDTO;
+import com.gridauthority.coordinator.domain.model.DeviceState;
 import com.gridauthority.coordinator.infrastructure.repository.MetricsHistoryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,13 +81,13 @@ class TelemetryIngestionServiceTest {
         System.out.println("=== DEVICE 1 (Stable) ===");
         device1Metrics.forEach(m -> System.out.printf(
                 "[%s] mean=%.2f | std=%.4f | cv=%.4f | decision=%s%n",
-                m.deviceId(), m.mean(), m.std(), m.cv(), m.decision()
+                m.deviceId(), m.mean(), m.std(), m.cv(), m.command()
         ));
 
         System.out.println("\n=== DEVICE 2 (Unstable/Storm) ===");
         device2Metrics.forEach(m -> System.out.printf(
                 "[%s] mean=%.2f | std=%.4f | cv=%.4f | decision=%s%n",
-                m.deviceId(), m.mean(), m.std(), m.cv(), m.decision()
+                m.deviceId(), m.mean(), m.std(), m.cv(), m.command()
         ));
 
         assertThat(device1Metrics).isNotEmpty();
@@ -106,7 +107,9 @@ class TelemetryIngestionServiceTest {
                 deviceId,
                 deviceName,
                 voltage,
+                DeviceState.ACTIVE,
                 Instant.now(),
+                "http://localhost:8080",
                 "sha256:config-hash-" + deviceId
         );
     }

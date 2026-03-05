@@ -3,6 +3,7 @@ package com.gridauthority.coordinator.application.service;
 import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
 import com.gridauthority.coordinator.application.dto.DeviceTelemetryDTO;
 import com.gridauthority.coordinator.domain.model.DeviceCommand;
+import com.gridauthority.coordinator.domain.model.DeviceState;
 import com.gridauthority.coordinator.domain.service.VoltageStatisticsService;
 import com.gridauthority.coordinator.infrastructure.repository.MetricsHistoryRepository;
 import com.gridauthority.coordinator.infrastructure.repository.VoltageWindowRepository;
@@ -45,6 +46,7 @@ public class TelemetryIngestionService {
                 stats.mean(),
                 stats.std(),
                 stats.cv(),
+                DeviceState.ACTIVE,
                 DeviceCommand.KEEP_RUNNING,
                 telemetry.timestamp()
         );
