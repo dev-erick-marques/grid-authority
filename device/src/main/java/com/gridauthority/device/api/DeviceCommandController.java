@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/device")
+@RequestMapping("/api")
 public class DeviceCommandController {
 
     private final DeviceStateService deviceStateService;
