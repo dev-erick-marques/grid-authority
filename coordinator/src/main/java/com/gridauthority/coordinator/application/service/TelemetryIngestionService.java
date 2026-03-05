@@ -31,6 +31,7 @@ public class TelemetryIngestionService {
     private final StableCycleTracker stableCycleTracker;
     private final DeviceRegistry deviceRegistry;
     private final MetricsHistoryRepository metricsHistoryRepository;
+    private final DeviceCommandDispatcher dispatcher;
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
@@ -80,6 +81,7 @@ public class TelemetryIngestionService {
             );
             metricsHistoryRepository.add(metrics);
             stableCycleTracker.record(metrics.deviceId(), command);
+            dispatcher.dispatch(metrics, command);
         }
 
         broadcast(metrics);
