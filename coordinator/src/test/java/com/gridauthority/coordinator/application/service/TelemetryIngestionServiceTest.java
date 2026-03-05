@@ -80,14 +80,14 @@ class TelemetryIngestionServiceTest {
 
         System.out.println("=== DEVICE 1 (Stable) ===");
         device1Metrics.forEach(m -> System.out.printf(
-                "[%s] mean=%.2f | std=%.4f | cv=%.4f | decision=%s%n",
-                m.deviceId(), m.mean(), m.std(), m.cv(), m.command()
+                "[%s] mean=%.2f | std=%.4f | cv=%.4f",
+                m.deviceId(), m.mean(), m.std(), m.cv()
         ));
 
         System.out.println("\n=== DEVICE 2 (Unstable/Storm) ===");
         device2Metrics.forEach(m -> System.out.printf(
-                "[%s] mean=%.2f | std=%.4f | cv=%.4f | decision=%s%n",
-                m.deviceId(), m.mean(), m.std(), m.cv(), m.command()
+                "[%s] mean=%.2f | std=%.4f | cv=%.4f",
+                m.deviceId(), m.mean(), m.std(), m.cv()
         ));
 
         assertThat(device1Metrics).isNotEmpty();

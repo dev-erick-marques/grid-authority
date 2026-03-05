@@ -47,7 +47,6 @@ public class TelemetryIngestionService {
                 stats.std(),
                 stats.cv(),
                 DeviceState.ACTIVE,
-                DeviceCommand.KEEP_RUNNING,
                 telemetry.timestamp()
         );
         metricsHistoryRepository.add(metrics);
