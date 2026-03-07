@@ -82,3 +82,41 @@ body {
   line-height: 1;
   transition: color 0.3s ease;
 }
+.chart-tooltip {
+  background: rgba(8, 10, 15, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  backdrop-filter: blur(12px);
+}
+
+.chart-tooltip__window {
+  margin-bottom: 4px;
+  color: #444;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.chart-tooltip__value {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.chart-tooltip__unit {
+  font-size: 11px;
+  color: #555;
+  margin-left: 3px;
+}
+
+.chart-tooltip__decision {
+  margin-top: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
