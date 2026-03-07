@@ -1,6 +1,7 @@
 package com.gridauthority.coordinator.infrastructure.repository;
 
 import com.gridauthority.coordinator.application.dto.DeviceTelemetryDTO;
+import com.gridauthority.coordinator.domain.model.DeviceState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 class VoltageWindowRepositoryTest {
 
     private VoltageWindowRepository repository;
+    private final DeviceTelemetryDTO baseTelemetry = new DeviceTelemetryDTO("device-1", "",120.0, DeviceState.ACTIVE, Instant.now(),"http://localhost:8080", "");
 
     @BeforeEach
     void setUp() throws Exception {
@@ -76,9 +78,7 @@ class VoltageWindowRepositoryTest {
 
     @Test
     void recordAndGet_shouldReturnEmpty_whenWindowIsNotYetFull() {
-        DeviceTelemetryDTO dto = new DeviceTelemetryDTO("device-1", "",120.0, Instant.now(),"");
-
-        Optional<double[]> result = repository.recordAndGet(dto);
+        Optional<double[]> result = repository.recordAndGet(baseTelemetry);
 
         assertThat(result).isEmpty();
     }
@@ -86,10 +86,10 @@ class VoltageWindowRepositoryTest {
     @Test
     void recordAndGet_shouldReturnWindow_onTenthCall() {
         for (int i = 0; i < 9; i++) {
-            repository.recordAndGet(new DeviceTelemetryDTO("device-1", "",120.0, Instant.now(),""));
+            repository.recordAndGet(baseTelemetry);
         }
 
-        Optional<double[]> result = repository.recordAndGet(new DeviceTelemetryDTO("device-1", "",120.0, Instant.now(),""));
+        Optional<double[]> result = repository.recordAndGet(baseTelemetry);
 
         assertThat(result).isPresent();
         assertThat(result.get()).hasSize(10);
@@ -99,7 +99,7 @@ class VoltageWindowRepositoryTest {
     void recordAndGet_shouldContinueReturningWindow_afterWindowIsFull() {
         fillWindow("device-1", 10, 120.0);
 
-        Optional<double[]> result = repository.recordAndGet(new DeviceTelemetryDTO("device-1", "",120.0, Instant.now(),""));
+        Optional<double[]> result = repository.recordAndGet(baseTelemetry);
 
         assertThat(result).isPresent();
         assertThat(result.get()).hasSize(10);
