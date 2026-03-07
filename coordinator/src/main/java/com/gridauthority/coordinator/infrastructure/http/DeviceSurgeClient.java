@@ -1,5 +1,7 @@
 package com.gridauthority.coordinator.infrastructure.http;
 
+import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
+import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,7 @@ public class DeviceSurgeClient {
     private static final String SURGE_CYCLE_START   = "/api/surge/cycle/start";
     private static final String SURGE_CYCLE_STOP    = "/api/surge/cycle/stop";
 
+    private final KmsSigningService kmsSigningService;
     private final RestTemplate restTemplate;
 
     public void startSurge(String deviceBaseUrl, String deviceId) {
@@ -35,11 +38,13 @@ public class DeviceSurgeClient {
     }
 
     private void post(String url, String deviceId, String action) {
+        SignedCommandPayload payload = kmsSigningService.sign(deviceId, action);
         try {
-            restTemplate.postForLocation(url, null);
-            log.info("[SURGE-CLIENT] {} → device={} at {}", action, deviceId, url);
+            restTemplate.postForLocation(url, payload);
+            log.info("[SURGE-CLIENT] {} → device={} (signed keyId={})",
+                    action, deviceId, payload.keyId());
         } catch (RestClientException e) {
-            log.error("[SURGE-CLIENT] Failed {} → device={} at {} — {}", action, deviceId, url, e.getMessage());
+            log.error("[SURGE-CLIENT] Failed {} → device={} — {}", action, deviceId, e.getMessage());
             throw e;
         }
     }
