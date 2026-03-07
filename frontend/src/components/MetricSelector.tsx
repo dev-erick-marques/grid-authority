@@ -1,5 +1,5 @@
-import type { MetricConfig } from '../contants'
-import { METRICS } from '../contants'
+import type { MetricConfig } from '../constants'
+import { METRICS } from '../constants'
 
 interface MetricSelectorProps {
     value: MetricConfig['key']
