@@ -33,6 +33,5 @@ public class DeviceSimulationProperties {
     public static class Surge {
         private long durationMs = 15000;
         private long intervalMs = 30000;
-        private boolean enabled = false;
     }
 }

@@ -20,13 +20,6 @@ public class SurgeModeService {
     private final AtomicBoolean surgeActive = new AtomicBoolean(false);
     private ScheduledFuture<?> cycleHandle;
 
-    @PostConstruct
-    public void init() {
-        if (properties.getSurge().isEnabled()) {
-            startAutoCycle();
-        }
-    }
-
     public boolean isSurgeActive() {
         return surgeActive.get();
     }
