@@ -177,7 +177,7 @@ export function DeviceCard({ device, metricKey }: DeviceCardProps) {
 
             {latest && (
                 <div className="card-footer">
-                    <span>WINDOWS EVALUATED: {history.length}</span>
+                    <span>LAST {history.length} WINDOWS</span>
                     <span style={{ color: '#2a2a2a' }}>
                         {latest.evaluatedAt
                             ? new Date(latest.evaluatedAt).toLocaleTimeString()
