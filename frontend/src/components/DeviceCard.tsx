@@ -130,7 +130,9 @@ export function DeviceCard({ device, metricKey }: DeviceCardProps) {
                         <LineChart data={history} margin={{ top: 6, right: 8, bottom: 0, left: -8 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" vertical={false} />
                             <XAxis
-                                dataKey="t"
+                                interval={3}
+                                tickFormatter={(v) => new Date(v).toLocaleTimeString('pt-BR', { minute: '2-digit', second: '2-digit' })}
+                                dataKey="evaluatedAt"
                                 tick={{ fill: '#aaa9a9', fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
                                 tickLine={false} axisLine={false}
                             />
