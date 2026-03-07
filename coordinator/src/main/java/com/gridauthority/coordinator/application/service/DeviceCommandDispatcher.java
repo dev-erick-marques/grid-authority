@@ -2,6 +2,7 @@ package com.gridauthority.coordinator.application.service;
 
 import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
 import com.gridauthority.coordinator.domain.model.DeviceCommand;
+import com.gridauthority.coordinator.domain.model.DeviceState;
 import com.gridauthority.coordinator.infrastructure.http.DeviceCommandClient;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,15 @@ public class DeviceCommandDispatcher {
     public void dispatch(DeviceMetricsDTO metrics, DeviceCommand command) {
 
         if (command == DeviceCommand.KEEP_RUNNING) {
+            return;
+        }
+        if (command == DeviceCommand.SHUTDOWN && metrics.state() == DeviceState.SHUTDOWN) {
+            log.debug("[DISPATCH] Skipping redundant SHUTDOWN for device={} — already SHUTDOWN", metrics.deviceId());
+            return;
+        }
+
+        if (command == DeviceCommand.RESTART && metrics.state() == DeviceState.ACTIVE) {
+            log.debug("[DISPATCH] Skipping redundant RESTART for device={} — already ACTIVE", metrics.deviceId());
             return;
         }
 
