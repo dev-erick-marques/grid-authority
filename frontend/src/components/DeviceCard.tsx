@@ -131,11 +131,11 @@ export function DeviceCard({ device, metricKey }: DeviceCardProps) {
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" vertical={false} />
                             <XAxis
                                 dataKey="t"
-                                tick={{ fill: '#333', fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
+                                tick={{ fill: '#aaa9a9', fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
                                 tickLine={false} axisLine={false}
                             />
                             <YAxis
-                                tick={{ fill: '#333', fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
+                                tick={{ fill: '#aaa9a9', fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" }}
                                 tickLine={false} axisLine={false} width={54}
                             />
                             {metric.threshold !== null && (
@@ -178,7 +178,7 @@ export function DeviceCard({ device, metricKey }: DeviceCardProps) {
             {latest && (
                 <div className="card-footer">
                     <span>LAST {history.length} WINDOWS</span>
-                    <span style={{ color: '#2a2a2a' }}>
+                    <span style={{ color: '#aaa9a9' }}>
                         {latest.evaluatedAt
                             ? new Date(latest.evaluatedAt).toLocaleTimeString()
                             : `TICK #${latest.t}`}

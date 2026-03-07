@@ -22,7 +22,7 @@ body {
   --color-bg:      #080a0f;
   --color-surface: rgba(255, 255, 255, 0.018);
   --color-border:  rgba(255, 255, 255, 0.07);
-  --color-muted:   #333;
+  --color-muted:   #aaa9a9;
   --color-text:    #e0e0e0;
 
   --color-cyan:    #00e5ff;
