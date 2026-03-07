@@ -6,7 +6,7 @@ import {
 import type { DeviceSurgeState } from '../hooks/useDeviceStream'
 import { useRealStream } from '../hooks/useDeviceStream'
 import type { MetricConfig } from '../constants'
-import { METRICS, THRESHOLD_CV } from '../constants'
+import { METRICS } from '../constants'
 import type { DiscoveredDevice } from '../hooks/useDevices'
 import { CustomTooltip } from './CustomTooltip'
 import { StatBadge } from './StatBadge'
@@ -80,11 +80,12 @@ function surgeCardStyle(surgeState: DeviceSurgeState, isShutdown: boolean) {
 }
 
 interface DeviceCardProps {
-    device: DiscoveredDevice
-    metricKey: MetricConfig['key']
+  device:      DiscoveredDevice
+  metricKey:   MetricConfig['key']
+  thresholdCV: number
 }
 
-export function DeviceCard({ device, metricKey }: DeviceCardProps) {
+export function DeviceCard({ device, metricKey, thresholdCV }: DeviceCardProps) {
     const history = useRealStream(device.id)
     const latest = history[history.length - 1]
     const metric = METRICS.find((m) => m.key === metricKey) as MetricConfig
@@ -120,7 +121,7 @@ export function DeviceCard({ device, metricKey }: DeviceCardProps) {
             <div className="stats-row">
                 <StatBadge label="Mean" value={latest?.mean.toFixed(1)} unit="V" color="#00e5ff" />
                 <StatBadge label="Std Dev" value={latest?.std.toFixed(3)} unit="" color="#ff9f43" />
-                <StatBadge label="CV" value={latest?.cv.toFixed(2)} unit="%" color="#ff4757" alert={(latest?.cv ?? 0) > THRESHOLD_CV} />
+                <StatBadge label="CV" value={latest?.cv.toFixed(2)} unit="%" color="#ff4757" alert={(latest?.cv ?? 0) > thresholdCV} />
                 <StatBadge label="Variance" value={latest?.variance.toFixed(2)} unit="" color="#a29bfe" />
             </div>
 

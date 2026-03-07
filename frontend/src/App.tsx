@@ -5,12 +5,20 @@ import { useDevices } from './hooks/useDevices'
 import { LoadingScreen } from './components/LoadingScreen'
 import { MetricSelector } from './components/MetricSelector'
 import { DeviceCard } from './components/DeviceCard'
+import { usePolicy } from './hooks/usePolicy'
 
 export default function App() {
   const [metricKey, setMetricKey] = useState<MetricConfig['key']>('cv')
-  const { devices, loading, error } = useDevices()
+  
+  const { devices, loading: loadingDevices, error: errorDevices } = useDevices()
+  const { policy,  loading: loadingPolicy,  error: errorPolicy  } = usePolicy()
 
-  if (loading || error || devices.length === 0) {
+  const loading = loadingDevices || loadingPolicy
+  const error   = errorDevices  ?? errorPolicy
+  
+
+
+  if (loading || error || !policy ||devices.length === 0) {
     return <LoadingScreen error={error} />
   }
 
@@ -24,7 +32,7 @@ export default function App() {
             <p className="app-eyebrow">Coordinator Monitor</p>
             <h1 className="app-title">GridAuthority</h1>
             <p className="app-subtitle">
-              Sliding window · SSE stream · CV threshold 12.5%
+              Sliding window · SSE stream · CV threshold {policy.thresholdCV}%
             </p>
           </div>
           <MetricSelector value={metricKey} onChange={setMetricKey} />
@@ -32,7 +40,7 @@ export default function App() {
 
         <div className="device-grid">
           {devices.map((d) => (
-            <DeviceCard key={d.id} device={d} metricKey={metricKey} />
+            <DeviceCard key={d.id} device={d} metricKey={metricKey} thresholdCV={policy.thresholdCV}/>
           ))}
         </div>
 

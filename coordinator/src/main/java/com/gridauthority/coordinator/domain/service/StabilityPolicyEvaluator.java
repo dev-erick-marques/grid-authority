@@ -8,14 +8,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class StabilityPolicyEvaluator {
 
-    @Value("${policy.threshold-cv:12.5}")
-    private double thresholdCv;
+    // EN 50160: ±10% nominal voltage variation limit.
+    // Normative constant — not configurable by design.
+    private static final double THRESHOLD_CV = 10.0;
 
     @Value("${policy.stable-cycles-required:10}")
     private int stableCyclesRequired;
 
     public DeviceCommand evaluate(double cv, DeviceState currentStatus, int stableCycles) {
-        if (cv > thresholdCv) {
+        if (cv > THRESHOLD_CV) {
             return DeviceCommand.SHUTDOWN;
         }
 
@@ -25,4 +26,16 @@ public class StabilityPolicyEvaluator {
 
         return DeviceCommand.KEEP_RUNNING;
     }
+    public SurgePolicyResponse getPolicy() {
+        return new SurgePolicyResponse(
+                THRESHOLD_CV,
+                "EN 50160",
+                "Maximum acceptable CV before shutdown is triggered"
+        );
+    }
+    public record SurgePolicyResponse(
+            double thresholdCV,
+            String standard,
+            String description
+    ) {}
 }
