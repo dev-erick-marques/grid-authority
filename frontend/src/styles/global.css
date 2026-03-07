@@ -120,3 +120,21 @@ body {
   align-items: center;
   gap: 5px;
 }
+
+.metric-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.metric-btn {
+  padding: 7px 18px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
