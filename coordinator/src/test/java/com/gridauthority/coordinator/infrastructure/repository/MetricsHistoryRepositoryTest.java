@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
 import com.gridauthority.coordinator.domain.model.DeviceCommand;
 import com.gridauthority.coordinator.domain.model.DeviceState;
+import com.gridauthority.coordinator.domain.model.DeviceSurgeState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -108,6 +109,7 @@ class MetricsHistoryRepositoryTest {
                 0.1,
                 0.01,
                 DeviceState.SHUTDOWN,
+                DeviceSurgeState.INACTIVE,
                 Instant.now()
         );
     }

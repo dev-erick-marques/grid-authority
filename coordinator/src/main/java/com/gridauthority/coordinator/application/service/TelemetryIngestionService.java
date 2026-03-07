@@ -6,6 +6,7 @@ import com.gridauthority.coordinator.domain.model.DeviceCommand;
 import com.gridauthority.coordinator.domain.service.StabilityPolicyEvaluator;
 import com.gridauthority.coordinator.domain.service.VoltageStatisticsService;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
+import com.gridauthority.coordinator.infrastructure.repository.DeviceSurgeStateRepository;
 import com.gridauthority.coordinator.infrastructure.repository.MetricsHistoryRepository;
 import com.gridauthority.coordinator.infrastructure.repository.StableCycleTracker;
 import com.gridauthority.coordinator.infrastructure.repository.VoltageWindowRepository;
@@ -32,6 +33,7 @@ public class TelemetryIngestionService {
     private final DeviceRegistry deviceRegistry;
     private final MetricsHistoryRepository metricsHistoryRepository;
     private final DeviceCommandDispatcher dispatcher;
+    private final DeviceSurgeStateRepository surgeStateRepository;
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
@@ -77,6 +79,7 @@ public class TelemetryIngestionService {
                     stats.std(),
                     stats.cv(),
                     telemetry.status(),
+                    surgeStateRepository.get(telemetry.deviceId()),
                     telemetry.timestamp()
             );
             metricsHistoryRepository.add(metrics);
