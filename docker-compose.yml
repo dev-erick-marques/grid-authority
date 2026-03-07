@@ -1,0 +1,79 @@
+services:
+  coordinator:
+    build:
+      context: ./coordinator
+      dockerfile: Dockerfile
+    container_name: coordinator
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: coordinator
+      SERVER_PORT: 8080
+      VOLTAGE_REPOSITORY_WINDOW_SIZE: 10
+      METRICS_HISTORY_SIZE: 20
+      POLICY_THRESHOLD_CV: 12.5
+      POLICY_STABLE_CYCLES_REQUIRED: 60
+    networks:
+      - gridnet
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  device-01:
+    build:
+      context: ./device
+      dockerfile: Dockerfile
+    container_name: device-01
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_APPLICATION_NAME: device
+      SERVER_PORT: 8081
+      DEVICE_SIMULATION_ID: device-01
+      DEVICE_SIMULATION_NAME: "Device Alpha"
+      DEVICE_SIMULATION_VOLTAGE_BASE: 220.0
+      DEVICE_SIMULATION_VOLTAGE_VARIATION: 4.0
+      DEVICE_SIMULATION_SCHEDULE_MS: 1000
+      DEVICE_SIMULATION_SURGE_ENABLED: false
+      DEVICE_SIMULATION_SURGE_DURATION_MS: 20000
+      DEVICE_SIMULATION_SURGE_INTERVAL_MS: 90000
+      COORDINATOR_URL: http://coordinator:8080
+      DEVICE_NETWORK_URL: http://device-01:8081
+    networks:
+      - gridnet
+    depends_on:
+      coordinator:
+        condition: service_healthy
+
+  device-02:
+    build:
+      context: ./device
+      dockerfile: Dockerfile
+    container_name: device-02
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_APPLICATION_NAME: device
+      SERVER_PORT: 8082
+      DEVICE_SIMULATION_ID: device-02
+      DEVICE_SIMULATION_NAME: "Device Beta"
+      DEVICE_SIMULATION_VOLTAGE_BASE: 220.0
+      DEVICE_SIMULATION_VOLTAGE_VARIATION: 4.0
+      DEVICE_SIMULATION_SCHEDULE_MS: 1000
+      DEVICE_SIMULATION_SURGE_ENABLED: true
+      DEVICE_SIMULATION_SURGE_DURATION_MS: 20000
+      DEVICE_SIMULATION_SURGE_INTERVAL_MS: 90000
+      COORDINATOR_URL: http://coordinator:8080
+      DEVICE_NETWORK_URL: http://device-02:8082
+    networks:
+      - gridnet
+    depends_on:
+      coordinator:
+        condition: service_healthy
+
+networks:
+  gridnet:
+    driver: bridge
