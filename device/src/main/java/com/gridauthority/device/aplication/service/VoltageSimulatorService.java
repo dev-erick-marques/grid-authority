@@ -17,10 +17,10 @@ public class VoltageSimulatorService {
     private final DeviceSimulationProperties properties;
     private final DeviceNetworkProperties networkProperties;
     private final Random random = new Random();
+    private final SurgeModeService surgeModeService;
 
     public DeviceTelemetryDTO generate(DeviceState state) {
-        double voltage = properties.getVoltage().getBase()
-                + (random.nextDouble() * 2 - 1) * properties.getVoltage().getVariation();
+        double voltage = generateVoltage();
 
         return new DeviceTelemetryDTO(
                 properties.getId(),
@@ -31,5 +31,14 @@ public class VoltageSimulatorService {
                 networkProperties.getSourceUrl(),
                 "sha256:config-" + properties.getId()
         );
+    }
+
+    private double generateVoltage() {
+        double base = properties.getVoltage().getBase();
+        double variation = surgeModeService.isSurgeActive()
+                ? properties.getVoltage().getSurgeVariation()
+                : properties.getVoltage().getVariation();
+
+        return base + (random.nextDouble() * 2 - 1) * variation;
     }
 }
