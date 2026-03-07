@@ -120,7 +120,7 @@ export function DeviceCard({ device, metricKey, thresholdCV }: DeviceCardProps) 
 
             <div className="stats-row">
                 <StatBadge label="Mean" value={latest?.mean.toFixed(1)} unit="V" color="#00e5ff" />
-                <StatBadge label="Std Dev" value={latest?.std.toFixed(3)} unit="" color="#ff9f43" />
+                <StatBadge label="Std Dev" value={latest?.std.toFixed(2)} unit="" color="#ff9f43" />
                 <StatBadge label="CV" value={latest?.cv.toFixed(2)} unit="%" color="#ff4757" alert={(latest?.cv ?? 0) > thresholdCV} />
                 <StatBadge label="Variance" value={latest?.variance.toFixed(2)} unit="" color="#a29bfe" />
             </div>

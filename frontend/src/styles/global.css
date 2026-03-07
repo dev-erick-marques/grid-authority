@@ -68,7 +68,7 @@ body {
 .stat-badge {
   border-radius: var(--radius-badge);
   padding: 10px 16px;
-  min-width: 110px;
+  max-width: 115px; 
   transition: all 0.3s ease;
 }
 
