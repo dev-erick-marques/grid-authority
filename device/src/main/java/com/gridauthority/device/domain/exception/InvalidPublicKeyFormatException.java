@@ -5,4 +5,7 @@ public class InvalidPublicKeyFormatException extends CommandVerificationExceptio
     public InvalidPublicKeyFormatException(String message, Throwable cause) {
         super(message, cause);
     }
+    public InvalidPublicKeyFormatException(String message) {
+        super(message);
+    }
 }
