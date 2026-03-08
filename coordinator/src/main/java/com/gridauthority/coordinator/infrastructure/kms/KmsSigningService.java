@@ -34,15 +34,18 @@ public class KmsSigningService {
             log.warn("[KMS] Disabled — commands will NOT be signed. Set kms.enabled=true in production.");
             return;
         }
+        cachedPublicKeyDer = fetchPublicKeyDerFromKms();
+        log.info("[KMS] Public key loaded — keyId={} algorithm={}",
+                kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());
+    }
+
+    private byte[] fetchPublicKeyDerFromKms() {
         try {
-            GetPublicKeyResponse response = kmsClient.getPublicKey(
+            return kmsClient.getPublicKey(
                     GetPublicKeyRequest.builder()
                             .keyId(kmsProperties.getKeyId())
                             .build()
-            );
-            cachedPublicKeyDer = response.publicKey().asByteArray();
-            log.info("[KMS] Public key loaded for keyId={} algorithm={}",
-                    kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());
+            ).publicKey().asByteArray();
         } catch (Exception e) {
             log.error("[KMS] Failed to load public key on startup — keyId={}: {}",
                     kmsProperties.getKeyId(), e.getMessage());
@@ -50,33 +53,16 @@ public class KmsSigningService {
         }
     }
 
-
     public SignedCommandPayload sign(String deviceId, String action) {
         long issuedAt = System.currentTimeMillis();
-
         CommandSigningContext context = new CommandSigningContext(action, deviceId, issuedAt);
-        byte[] canonicalBytes = canonicalJsonMapper.writeCanonical(context);
-        String canonicalJson  = canonicalJsonMapper.writeCanonicalAsString(context);
+        String canonicalJson = canonicalJsonMapper.writeCanonicalAsString(context);
 
         if (!kmsProperties.isEnabled()) {
-            return new SignedCommandPayload(
-                    deviceId, action, issuedAt,
-                    "LOCAL_DEV", kmsProperties.getSigningAlgorithm(),
-                    "NO_SIGNATURE", canonicalJson
-            );
+            return buildUnsignedPayload(deviceId, action, issuedAt, canonicalJson);
         }
 
-        software.amazon.awssdk.services.kms.model.SignResponse signResponse =
-                kmsClient.sign(SignRequest.builder()
-                        .keyId(kmsProperties.getKeyId())
-                        .message(SdkBytes.fromByteArray(canonicalBytes))
-                        .messageType(MessageType.RAW)
-                        .signingAlgorithm(SigningAlgorithmSpec.fromValue(kmsProperties.getSigningAlgorithm()))
-                        .build());
-
-        String signatureBase64 = Base64.getEncoder()
-                .encodeToString(signResponse.signature().asByteArray());
-
+        String signatureBase64 = signWithKms(context);
         log.info("[KMS] Signed action={} device={} keyId={} canonical={}",
                 action, deviceId, kmsProperties.getKeyId(), canonicalJson);
 
@@ -87,11 +73,26 @@ public class KmsSigningService {
         );
     }
 
-    public record PublicKeyResponseDTO(
-            @JsonProperty("keyId") String keyId,
-            @JsonProperty("signingAlgorithm") String signingAlgorithm,
-            @JsonProperty("publicKeyBase64") String publicKeyBase64
-    ) {}
+    private String signWithKms(CommandSigningContext context) {
+        byte[] canonicalBytes = canonicalJsonMapper.writeCanonical(context);
+        byte[] signatureBytes = kmsClient.sign(SignRequest.builder()
+                .keyId(kmsProperties.getKeyId())
+                .message(SdkBytes.fromByteArray(canonicalBytes))
+                .messageType(MessageType.RAW)
+                .signingAlgorithm(SigningAlgorithmSpec.fromValue(kmsProperties.getSigningAlgorithm()))
+                .build()
+        ).signature().asByteArray();
+        return Base64.getEncoder().encodeToString(signatureBytes);
+    }
+
+    private SignedCommandPayload buildUnsignedPayload(
+            String deviceId, String action, long issuedAt, String canonicalJson) {
+        return new SignedCommandPayload(
+                deviceId, action, issuedAt,
+                "LOCAL_DEV", kmsProperties.getSigningAlgorithm(),
+                "NO_SIGNATURE", canonicalJson
+        );
+    }
 
     public PublicKeyResponseDTO getPublicKeyResponse() {
         if (cachedPublicKeyDer == null) {
@@ -103,4 +104,10 @@ public class KmsSigningService {
                 Base64.getEncoder().encodeToString(cachedPublicKeyDer)
         );
     }
+
+    public record PublicKeyResponseDTO(
+            @JsonProperty("keyId") String keyId,
+            @JsonProperty("signingAlgorithm") String signingAlgorithm,
+            @JsonProperty("publicKeyBase64") String publicKeyBase64
+    ) {}
 }
