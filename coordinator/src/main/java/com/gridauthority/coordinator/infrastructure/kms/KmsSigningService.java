@@ -4,6 +4,9 @@ package com.gridauthority.coordinator.infrastructure.kms;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gridauthority.coordinator.application.dto.CommandSigningContext;
 import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
+import com.gridauthority.coordinator.domain.exceptions.KmsPublicKeyNotLoadedException;
+import com.gridauthority.coordinator.domain.exceptions.KmsSigningFailedException;
+import com.gridauthority.coordinator.domain.exceptions.KmsUnavailableException;
 import com.gridauthority.coordinator.infrastructure.config.KmsProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +15,6 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.kms.model.GetPublicKeyRequest;
-import software.amazon.awssdk.services.kms.model.GetPublicKeyResponse;
 import software.amazon.awssdk.services.kms.model.MessageType;
 import software.amazon.awssdk.services.kms.model.SignRequest;
 import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec;
@@ -49,7 +51,8 @@ public class KmsSigningService {
         } catch (Exception e) {
             log.error("[KMS] Failed to load public key on startup — keyId={}: {}",
                     kmsProperties.getKeyId(), e.getMessage());
-            throw new IllegalStateException("KMS public key unavailable on startup", e);
+            throw new KmsUnavailableException(
+                    "KMS public key unavailable on startup for keyId=" + kmsProperties.getKeyId(), e);
         }
     }
 
@@ -75,14 +78,21 @@ public class KmsSigningService {
 
     private String signWithKms(CommandSigningContext context) {
         byte[] canonicalBytes = canonicalJsonMapper.writeCanonical(context);
-        byte[] signatureBytes = kmsClient.sign(SignRequest.builder()
-                .keyId(kmsProperties.getKeyId())
-                .message(SdkBytes.fromByteArray(canonicalBytes))
-                .messageType(MessageType.RAW)
-                .signingAlgorithm(SigningAlgorithmSpec.fromValue(kmsProperties.getSigningAlgorithm()))
-                .build()
-        ).signature().asByteArray();
-        return Base64.getEncoder().encodeToString(signatureBytes);
+        try {
+            byte[] signatureBytes = kmsClient.sign(SignRequest.builder()
+                    .keyId(kmsProperties.getKeyId())
+                    .message(SdkBytes.fromByteArray(canonicalBytes))
+                    .messageType(MessageType.RAW)
+                    .signingAlgorithm(SigningAlgorithmSpec.fromValue(kmsProperties.getSigningAlgorithm()))
+                    .build()
+            ).signature().asByteArray();
+            return Base64.getEncoder().encodeToString(signatureBytes);
+        } catch (Exception e) {
+            throw new KmsSigningFailedException(
+                    "KMS signing failed for keyId=" + kmsProperties.getKeyId()
+                            + " action=" + context.action()
+                            + " device=" + context.deviceId(), e);
+        }
     }
 
     private SignedCommandPayload buildUnsignedPayload(
@@ -96,7 +106,8 @@ public class KmsSigningService {
 
     public PublicKeyResponseDTO getPublicKeyResponse() {
         if (cachedPublicKeyDer == null) {
-            throw new IllegalStateException("KMS public key not loaded");
+            throw new KmsPublicKeyNotLoadedException(
+                    "KMS public key not loaded — either kms.enabled=false or startup failed");
         }
         return new PublicKeyResponseDTO(
                 kmsProperties.getKeyId(),
