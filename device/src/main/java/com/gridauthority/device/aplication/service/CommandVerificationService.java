@@ -1,6 +1,9 @@
 package com.gridauthority.device.aplication.service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.gridauthority.device.domain.exception.CoordinatorPublicKeyUnavailableException;
+import com.gridauthority.device.domain.exception.InvalidPublicKeyFormatException;
+import com.gridauthority.device.domain.exception.SignatureVerificationException;
 import com.gridauthority.device.infrastructure.config.CoordinatorProperties;
 import com.gridauthority.device.infrastructure.config.SignatureVerificationProperties;
 import jakarta.annotation.PostConstruct;
@@ -8,10 +11,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.SignatureException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
@@ -40,18 +45,12 @@ public class CommandVerificationService {
             return;
         }
 
-        try {
-            PublicKeyResponseDTO response = fetchCoordinatorPublicKey();
-            byte[] derBytes = decodePublicKey(response);
-            coordinatorPublicKey = buildEcPublicKey(derBytes);
+        PublicKeyResponseDTO response = fetchCoordinatorPublicKey();
+        byte[] derBytes = decodePublicKey(response);
+        coordinatorPublicKey = buildEcPublicKey(derBytes);
 
-            log.info("[VERIFY] Coordinator EC public key loaded — keyId={} algorithm={} bytes={}",
-                    response.keyId(), response.signingAlgorithm(), derBytes.length);
-
-        } catch (Exception e) {
-            log.error("[VERIFY] Failed to load public key from coordinator: {}", e.getMessage());
-            throw new IllegalStateException("Cannot start without coordinator public key", e);
-        }
+        log.info("[VERIFY] Coordinator EC public key loaded — keyId={} algorithm={} bytes={}",
+                response.keyId(), response.signingAlgorithm(), derBytes.length);
     }
 
     public boolean verify(String signatureBase64, String canonicalJson, long issuedAt) {
@@ -115,34 +114,53 @@ public class CommandVerificationService {
 
             return valid;
 
-        } catch (Exception e) {
-            log.error("[VERIFY] Signature verification error: {}", e.getMessage());
+        } catch (SignatureException e) {
+            log.warn("[VERIFY] Malformed signature bytes: {}", e.getMessage());
             return false;
+        } catch (Exception e) {
+            throw new SignatureVerificationException(
+                    "Cryptographic error during signature verification: " + e.getMessage(), e);
         }
     }
 
     private PublicKeyResponseDTO fetchCoordinatorPublicKey() {
         String url = coordinatorProperties.getUrl() + "/api/authority/public-key";
+        try {
+            PublicKeyResponseDTO response = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(PublicKeyResponseDTO.class);
 
-        PublicKeyResponseDTO response = restClient.get()
-                .uri(url)
-                .retrieve()
-                .body(PublicKeyResponseDTO.class);
-
-        if (response == null || response.publicKeyBase64() == null || response.publicKeyBase64().isBlank()) {
-            throw new IllegalStateException("Coordinator returned empty public key");
+            if (response == null || response.publicKeyBase64() == null || response.publicKeyBase64().isBlank()) {
+                throw new CoordinatorPublicKeyUnavailableException(
+                        "Coordinator returned empty or null public key from url=" + url);
+            }
+            return response;
+        } catch (CoordinatorPublicKeyUnavailableException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CoordinatorPublicKeyUnavailableException(
+                    "Failed to reach coordinator at url=" + url, e);
         }
-
-        return response;
     }
 
     private byte[] decodePublicKey(PublicKeyResponseDTO response) {
-        return Base64.getDecoder().decode(response.publicKeyBase64());
+        try {
+            return Base64.getDecoder().decode(response.publicKeyBase64());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidPublicKeyFormatException(
+                    "Coordinator public key is not valid Base64: " + e.getMessage(), e);
+        }
     }
 
-    private PublicKey buildEcPublicKey(byte[] derBytes) throws Exception {
-        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(derBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("EC");
-        return keyFactory.generatePublic(keySpec);
+    private PublicKey buildEcPublicKey(byte[] derBytes) {
+        try {
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(derBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            return keyFactory.generatePublic(keySpec);
+        } catch (Exception e) {
+            throw new InvalidPublicKeyFormatException(
+                    "Coordinator public key is not a valid EC DER-encoded key: " + e.getMessage(), e);
+        }
     }
 }
