@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.gridauthority.coordinator.domain.exceptions.CanonicalSerializationException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,7 +27,9 @@ public class CanonicalJsonMapper {
         try {
             return mapper.writeValueAsBytes(value);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Failed to serialize canonical payload: " + e.getMessage(), e);
+            throw new CanonicalSerializationException(
+                    "Failed to serialize canonical payload for type=" + value.getClass().getSimpleName()
+                            + ": " + e.getMessage(), e);
         }
     }
 
@@ -34,7 +37,9 @@ public class CanonicalJsonMapper {
         try {
             return mapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Failed to serialize canonical payload: " + e.getMessage(), e);
+            throw new CanonicalSerializationException(
+                    "Failed to serialize canonical payload for type=" + value.getClass().getSimpleName()
+                            + ": " + e.getMessage(), e);
         }
     }
 }
