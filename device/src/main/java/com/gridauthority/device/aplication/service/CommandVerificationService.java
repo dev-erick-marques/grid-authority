@@ -26,6 +26,7 @@ public class CommandVerificationService {
     private final RestClient restClient;
 
     private PublicKey coordinatorPublicKey;
+
     public record PublicKeyResponseDTO(
             @JsonProperty("keyId") String keyId,
             @JsonProperty("signingAlgorithm") String signingAlgorithm,
@@ -34,25 +35,15 @@ public class CommandVerificationService {
 
     @PostConstruct
     public void loadPublicKey() {
-        if (!verificationProperties.isEnabled()) {
+        if (verificationDisabled()) {
             log.warn("[VERIFY] Signature verification DISABLED — accepting all commands. Enable in production.");
             return;
         }
+
         try {
-            String url = coordinatorProperties.getUrl() + "/api/authority/public-key";
-            PublicKeyResponseDTO response = restClient.get()
-                    .uri(url)
-                    .retrieve()
-                    .body(PublicKeyResponseDTO.class);
-
-            if (response == null || response.publicKeyBase64() == null || response.publicKeyBase64().isBlank()) {
-                throw new IllegalStateException("Coordinator returned empty public key");
-            }
-
-            byte[] derBytes = Base64.getDecoder().decode(response.publicKeyBase64());
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(derBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("EC");
-            coordinatorPublicKey = keyFactory.generatePublic(keySpec);
+            PublicKeyResponseDTO response = fetchCoordinatorPublicKey();
+            byte[] derBytes = decodePublicKey(response);
+            coordinatorPublicKey = buildEcPublicKey(derBytes);
 
             log.info("[VERIFY] Coordinator EC public key loaded — keyId={} algorithm={} bytes={}",
                     response.keyId(), response.signingAlgorithm(), derBytes.length);
@@ -64,43 +55,94 @@ public class CommandVerificationService {
     }
 
     public boolean verify(String signatureBase64, String canonicalJson, long issuedAt) {
-        if (!verificationProperties.isEnabled()) {
+
+        if (verificationDisabled()) {
             return true;
         }
+
+        return publicKeyLoaded()
+                && timestampValid(issuedAt)
+                && !isDevMarker(signatureBase64)
+                && verifySignature(signatureBase64, canonicalJson);
+    }
+
+    private boolean verificationDisabled() {
+        return !verificationProperties.isEnabled();
+    }
+
+    private boolean publicKeyLoaded() {
         if (coordinatorPublicKey == null) {
             log.error("[VERIFY] Public key not loaded — rejecting command");
             return false;
         }
+        return true;
+    }
 
+    private boolean timestampValid(long issuedAt) {
         long age = System.currentTimeMillis() - issuedAt;
+
         if (age > verificationProperties.getTimestampToleranceMs() || age < 0) {
             log.warn("[VERIFY] Command rejected — timestamp age={}ms outside tolerance={}ms",
                     age, verificationProperties.getTimestampToleranceMs());
             return false;
         }
 
-        try {
-            if ("NO_SIGNATURE".equals(signatureBase64)) {
-                log.warn("[VERIFY] Received unsigned command (dev mode marker) — rejecting");
-                return false;
-            }
+        return true;
+    }
 
+    private boolean isDevMarker(String signatureBase64) {
+        if ("NO_SIGNATURE".equals(signatureBase64)) {
+            log.warn("[VERIFY] Received unsigned command (dev mode marker) — rejecting");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean verifySignature(String signatureBase64, String canonicalJson) {
+        try {
             byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
-            byte[] messageBytes   = canonicalJson.getBytes(StandardCharsets.UTF_8);
+            byte[] messageBytes = canonicalJson.getBytes(StandardCharsets.UTF_8);
 
             Signature sig = Signature.getInstance("SHA256withECDSA");
             sig.initVerify(coordinatorPublicKey);
             sig.update(messageBytes);
 
             boolean valid = sig.verify(signatureBytes);
+
             if (!valid) {
                 log.warn("[VERIFY] Invalid ECDSA signature for canonicalJson={}", canonicalJson);
             }
+
             return valid;
 
         } catch (Exception e) {
             log.error("[VERIFY] Signature verification error: {}", e.getMessage());
             return false;
         }
+    }
+
+    private PublicKeyResponseDTO fetchCoordinatorPublicKey() {
+        String url = coordinatorProperties.getUrl() + "/api/authority/public-key";
+
+        PublicKeyResponseDTO response = restClient.get()
+                .uri(url)
+                .retrieve()
+                .body(PublicKeyResponseDTO.class);
+
+        if (response == null || response.publicKeyBase64() == null || response.publicKeyBase64().isBlank()) {
+            throw new IllegalStateException("Coordinator returned empty public key");
+        }
+
+        return response;
+    }
+
+    private byte[] decodePublicKey(PublicKeyResponseDTO response) {
+        return Base64.getDecoder().decode(response.publicKeyBase64());
+    }
+
+    private PublicKey buildEcPublicKey(byte[] derBytes) throws Exception {
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(derBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("EC");
+        return keyFactory.generatePublic(keySpec);
     }
 }
