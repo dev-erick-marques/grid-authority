@@ -65,9 +65,7 @@ public class CommandVerificationService {
             throw new SignatureVerificationException("Command rejected — timestamp outside tolerance");
         }
 
-        if (!verifySignature(signatureBase64, canonicalJson)) {
-            throw new SignatureVerificationException("Invalid ECDSA signature");
-        }
+        verifySignature(signatureBase64, canonicalJson);
     }
     private boolean verificationDisabled() {
         return !verificationProperties.isEnabled();
@@ -93,7 +91,7 @@ public class CommandVerificationService {
         return true;
     }
 
-    private boolean verifySignature(String signatureBase64, String canonicalJson) {
+    private void verifySignature(String signatureBase64, String canonicalJson) {
         try {
             byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
             byte[] messageBytes = canonicalJson.getBytes(StandardCharsets.UTF_8);
@@ -102,17 +100,16 @@ public class CommandVerificationService {
             sig.initVerify(coordinatorPublicKey);
             sig.update(messageBytes);
 
-            boolean valid = sig.verify(signatureBytes);
-
-            if (!valid) {
+            if (!sig.verify(signatureBytes)) {
                 log.warn("[VERIFY] Invalid ECDSA signature for canonicalJson={}", canonicalJson);
+                throw new SignatureVerificationException("Invalid ECDSA signature");
             }
-
-            return valid;
 
         } catch (SignatureException e) {
             log.warn("[VERIFY] Malformed signature bytes: {}", e.getMessage());
-            return false;
+            throw new SignatureVerificationException("Malformed signature bytes: " + e.getMessage(), e);
+        } catch (SignatureVerificationException e) {
+            throw e;
         } catch (Exception e) {
             throw new SignatureVerificationException(
                     "Cryptographic error during signature verification: " + e.getMessage(), e);
