@@ -53,18 +53,24 @@ public class CommandVerificationService {
                 response.keyId(), response.signingAlgorithm(), derBytes.length);
     }
 
-    public boolean verify(String signatureBase64, String canonicalJson, long issuedAt) {
-
+    public void verify(String signatureBase64, String canonicalJson, long issuedAt) {
         if (verificationDisabled()) {
-            return true;
+            return;
         }
 
-        return publicKeyLoaded()
-                && timestampValid(issuedAt)
-                && !isDevMarker(signatureBase64)
-                && verifySignature(signatureBase64, canonicalJson);
+        if (!publicKeyLoaded()) {
+            throw new SignatureVerificationException("Public key not loaded — cannot verify command");
+        }
+        if (!timestampValid(issuedAt)) {
+            throw new SignatureVerificationException("Command rejected — timestamp outside tolerance");
+        }
+        if (isDevMarker(signatureBase64)) {
+            throw new SignatureVerificationException("Unsigned command (dev marker) rejected");
+        }
+        if (!verifySignature(signatureBase64, canonicalJson)) {
+            throw new SignatureVerificationException("Invalid ECDSA signature");
+        }
     }
-
     private boolean verificationDisabled() {
         return !verificationProperties.isEnabled();
     }

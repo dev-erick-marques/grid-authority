@@ -27,7 +27,9 @@ public class DeviceCommandController {
 
     @PostMapping("/command")
     public DeviceState command(@RequestBody SignedCommandDTO signed) {
-        verifyOrReject(signed);
+        verificationService.verify(
+                signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt()
+        );
 
         DeviceCommand command;
         try {
@@ -42,19 +44,5 @@ public class DeviceCommandController {
             case SHUTDOWN -> deviceStateService.shutdown();
             case RESTART  -> deviceStateService.restart();
         };
-    }
-
-    private void verifyOrReject(SignedCommandDTO signed) {
-        boolean valid = verificationService.verify(
-                signed.signatureBase64(),
-                signed.canonicalJson(),
-                signed.issuedAt()
-        );
-        if (!valid) {
-            log.warn("[COMMAND] Rejected unsigned/invalid command action={} device={}",
-                    signed.action(), signed.deviceId());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Command rejected: invalid or missing KMS signature");
-        }
     }
 }

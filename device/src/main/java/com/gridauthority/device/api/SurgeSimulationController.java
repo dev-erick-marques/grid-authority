@@ -24,15 +24,9 @@ public class SurgeSimulationController {
 
     @PostMapping("/surge/signed")
     public ResponseEntity<SurgeResponse> signedSurge(@RequestBody SignedCommandDTO signed) {
-        boolean valid = verificationService.verify(
+        verificationService.verify(
                 signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt()
         );
-        if (!valid) {
-            log.warn("[SURGE] Rejected unsigned/invalid surge command action={} device={}",
-                    signed.action(), signed.deviceId());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Surge command rejected: invalid or missing KMS signature");
-        }
 
         log.info("[SURGE] Verified {} for device={}", signed.action(), signed.deviceId());
 
