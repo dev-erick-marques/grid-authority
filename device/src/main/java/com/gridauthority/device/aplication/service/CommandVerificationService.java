@@ -64,9 +64,7 @@ public class CommandVerificationService {
         if (!timestampValid(issuedAt)) {
             throw new SignatureVerificationException("Command rejected — timestamp outside tolerance");
         }
-        if (isDevMarker(signatureBase64)) {
-            throw new SignatureVerificationException("Unsigned command (dev marker) rejected");
-        }
+
         if (!verifySignature(signatureBase64, canonicalJson)) {
             throw new SignatureVerificationException("Invalid ECDSA signature");
         }
@@ -93,14 +91,6 @@ public class CommandVerificationService {
         }
 
         return true;
-    }
-
-    private boolean isDevMarker(String signatureBase64) {
-        if ("NO_SIGNATURE".equals(signatureBase64)) {
-            log.warn("[VERIFY] Received unsigned command (dev mode marker) — rejecting");
-            return true;
-        }
-        return false;
     }
 
     private boolean verifySignature(String signatureBase64, String canonicalJson) {
