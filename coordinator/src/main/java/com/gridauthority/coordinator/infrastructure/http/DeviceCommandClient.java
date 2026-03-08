@@ -20,7 +20,7 @@ public class DeviceCommandClient {
     private final KmsSigningService kmsSigningService;
 
     public void send(String deviceBaseUrl, String deviceId, DeviceCommand command) {
-        SignedCommandPayload payload = kmsSigningService.sign(deviceId, command.name());
+        SignedCommandPayload payload = kmsSigningService.createSignedCommand(deviceId, command.name());
         String url = deviceBaseUrl + COMMANDS_PATH;
 
         try {

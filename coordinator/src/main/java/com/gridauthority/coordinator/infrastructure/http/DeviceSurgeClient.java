@@ -35,7 +35,7 @@ public class DeviceSurgeClient {
     }
 
     private void post(String deviceBaseUrl, String deviceId, String action) {
-        SignedCommandPayload payload = kmsSigningService.sign(deviceId, action);
+        SignedCommandPayload payload = kmsSigningService.createSignedCommand(deviceId, action);
         String url = deviceBaseUrl + SURGE_PATH;
         try {
             restTemplate.postForLocation(url, payload);
