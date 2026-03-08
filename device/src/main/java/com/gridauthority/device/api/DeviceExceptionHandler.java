@@ -2,6 +2,7 @@ package com.gridauthority.device.api;
 
 import com.gridauthority.device.domain.exception.DeviceAlreadyActiveException;
 import com.gridauthority.device.domain.exception.DeviceAlreadyShutdownException;
+import com.gridauthority.device.domain.exception.SignatureVerificationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -31,9 +32,9 @@ public class DeviceExceptionHandler {
         return Map.of("error", ex.getMessage());
     }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ExceptionHandler(SignatureVerificationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleInvalidCommand(HttpMessageNotReadableException ex) {
-        return Map.of("error", "Invalid command — accepted values: SHUTDOWN, RESTART");
+    public Map<String, String> handleSignatureVerification(SignatureVerificationException ex) {
+        return Map.of("error",  "request_authentication_failed");
     }
 }
