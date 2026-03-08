@@ -29,9 +29,15 @@ public class DeviceCommandController {
     public DeviceState command(@RequestBody SignedCommandDTO signed) {
         verifyOrReject(signed);
 
-        DeviceCommand command = DeviceCommand.valueOf(signed.action());
-        log.info("[COMMAND] Verified {} for device={}", command, signed.deviceId());
+        DeviceCommand command;
+        try {
+            command = DeviceCommand.valueOf(signed.action());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unknown device command: " + signed.action());
+        }
 
+        log.info("[COMMAND] Verified {} for device={}", command, signed.deviceId());
         return switch (command) {
             case SHUTDOWN -> deviceStateService.shutdown();
             case RESTART  -> deviceStateService.restart();

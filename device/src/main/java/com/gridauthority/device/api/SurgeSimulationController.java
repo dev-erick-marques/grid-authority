@@ -3,6 +3,7 @@ package com.gridauthority.device.api;
 import com.gridauthority.device.aplication.dto.SignedCommandDTO;
 import com.gridauthority.device.aplication.service.CommandVerificationService;
 import com.gridauthority.device.aplication.service.SurgeModeService;
+import com.gridauthority.device.domain.model.SurgeAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -24,9 +25,7 @@ public class SurgeSimulationController {
     @PostMapping("/surge/signed")
     public ResponseEntity<SurgeResponse> signedSurge(@RequestBody SignedCommandDTO signed) {
         boolean valid = verificationService.verify(
-                signed.signatureBase64(),
-                signed.canonicalJson(),
-                signed.issuedAt()
+                signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt()
         );
         if (!valid) {
             log.warn("[SURGE] Rejected unsigned/invalid surge command action={} device={}",
@@ -37,7 +36,15 @@ public class SurgeSimulationController {
 
         log.info("[SURGE] Verified {} for device={}", signed.action(), signed.deviceId());
 
-        return switch (signed.action()) {
+        SurgeAction surgeAction;
+        try {
+            surgeAction = SurgeAction.valueOf(signed.action());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unknown surge action: " + signed.action());
+        }
+
+        return switch (surgeAction) {
             case SURGE_START -> { surgeModeService.forceSurge();
                 yield ResponseEntity.ok(new SurgeResponse("surge activated", true));
             }
