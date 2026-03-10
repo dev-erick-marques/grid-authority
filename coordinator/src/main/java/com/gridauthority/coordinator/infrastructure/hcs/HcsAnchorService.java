@@ -76,15 +76,17 @@ public class HcsAnchorService {
             new TopicMessageSubmitTransaction()
                     .setTopicId(topicId)
                     .setMessage(payload.getBytes(StandardCharsets.UTF_8))
-                    .execute(hederaClient)
-                    .getReceipt(hederaClient);
-
-            log.info("[HCS] Anchored eventType={} topicId={} device={} payloadHash={}",
-                    label, topicIdStr, event.deviceId(), event.payloadHash());
+                    .executeAsync(hederaClient)
+                    .thenRun(() -> log.info("[HCS] Anchored eventType={} topicId={} device={} payloadHash={}",
+                            label, topicIdStr, event.deviceId(), event.payloadHash()))
+                    .exceptionally(e -> {
+                        log.error("[HCS] Failed to anchor eventType={} topicId={} — {}",
+                                label, topicIdStr, e.getMessage());
+                        return null;
+                    });
 
         } catch (Exception e) {
-            log.error("[HCS] Failed to anchor eventType={} topicId={} — {}",
-                    label, topicIdStr, e.getMessage());
+            log.error("[HCS] Failed to serialize HCS event eventType={} — {}", label, e.getMessage());
         }
     }
 
