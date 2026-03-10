@@ -64,12 +64,13 @@ public record HcsEvent(
     }
 
     public static HcsEvent surge(
-            String deviceId, String action, String payloadHash) {
+            String deviceId, String action, String payloadHash,
+            String keyId, String signingAlgorithm, String signatureBase64) {
         return new HcsEvent(
                 EventType.SURGE.name(),
                 deviceId, action, null, null,
-                payloadHash, null, null, null,
-                null, now()
+                payloadHash, keyId, signingAlgorithm, null,
+                signatureBase64, now()
         );
     }
 

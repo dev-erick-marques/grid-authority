@@ -16,26 +16,9 @@ public class DeviceSurgeClient {
     private static final String SURGE_PATH = "/api/surge/signed";
 
     private final RestTemplate restTemplate;
-    private final KmsSigningService kmsSigningService;
 
-    public void startSurge(String deviceBaseUrl, String deviceId) {
-        post(deviceBaseUrl, deviceId, "SURGE_START");
-    }
-
-    public void stopSurge(String deviceBaseUrl, String deviceId) {
-        post(deviceBaseUrl, deviceId, "SURGE_STOP");
-    }
-
-    public void startCycle(String deviceBaseUrl, String deviceId) {
-        post(deviceBaseUrl, deviceId, "SURGE_CYCLE_START");
-    }
-
-    public void stopCycle(String deviceBaseUrl, String deviceId) {
-        post(deviceBaseUrl, deviceId, "SURGE_CYCLE_STOP");
-    }
-
-    private void post(String deviceBaseUrl, String deviceId, String action) {
-        SignedCommandPayload payload = kmsSigningService.createSignedCommand(deviceId, action);
+    public void send(String deviceBaseUrl, String deviceId,
+                     String action, SignedCommandPayload payload) {
         String url = deviceBaseUrl + SURGE_PATH;
         try {
             restTemplate.postForLocation(url, payload);

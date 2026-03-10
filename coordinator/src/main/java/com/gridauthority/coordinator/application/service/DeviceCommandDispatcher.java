@@ -45,7 +45,7 @@ public class DeviceCommandDispatcher {
 
         deviceRegistry.resolve(metrics.deviceId()).ifPresentOrElse(
                 baseUrl -> {
-                    deviceCommandClient.send(baseUrl, metrics.deviceId(), command);
+                    deviceCommandClient.send(baseUrl, metrics.deviceId(), command, signed);
                     anchorDecision(metrics, command, signed);
                 },
                 () -> log.warn("[DISPATCH] No URL registered for device={} — {} not delivered",

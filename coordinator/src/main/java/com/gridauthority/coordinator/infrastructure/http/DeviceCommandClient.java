@@ -17,12 +17,10 @@ public class DeviceCommandClient {
     private static final String COMMANDS_PATH = "/api/command";
 
     private final RestTemplate restTemplate;
-    private final KmsSigningService kmsSigningService;
 
-    public void send(String deviceBaseUrl, String deviceId, DeviceCommand command) {
-        SignedCommandPayload payload = kmsSigningService.createSignedCommand(deviceId, command.name());
+    public void send(String deviceBaseUrl, String deviceId,
+                     DeviceCommand command, SignedCommandPayload payload) {
         String url = deviceBaseUrl + COMMANDS_PATH;
-
         try {
             restTemplate.postForLocation(url, payload);
             log.info("[HTTP] {} → device={} at {} (signed keyId={})",
