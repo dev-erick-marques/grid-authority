@@ -28,8 +28,7 @@ public class VoltageSimulatorService {
                 voltage,
                 state,
                 Instant.now(),
-                networkProperties.getSourceUrl(),
-                "sha256:config-" + properties.getId()
+                networkProperties.getSourceUrl()
         );
     }
 

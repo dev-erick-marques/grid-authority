@@ -109,8 +109,7 @@ class TelemetryIngestionServiceTest {
                 voltage,
                 DeviceState.ACTIVE,
                 Instant.now(),
-                "http://localhost:8080",
-                "sha256:config-hash-" + deviceId
+                "http://localhost:8080"
         );
     }
 }

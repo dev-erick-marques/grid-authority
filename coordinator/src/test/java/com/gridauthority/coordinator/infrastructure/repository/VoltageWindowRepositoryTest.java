@@ -20,7 +20,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 class VoltageWindowRepositoryTest {
 
     private VoltageWindowRepository repository;
-    private final DeviceTelemetryDTO baseTelemetry = new DeviceTelemetryDTO("device-1", "",120.0, DeviceState.ACTIVE, Instant.now(),"http://localhost:8080", "");
+    private final DeviceTelemetryDTO baseTelemetry = new DeviceTelemetryDTO("device-1", "",120.0, DeviceState.ACTIVE, Instant.now(),"http://localhost:8080");
 
     @BeforeEach
     void setUp() throws Exception {
