@@ -10,7 +10,7 @@ public final class PayloadHasher {
         try {
             byte[] hash = MessageDigest.getInstance("SHA-256")
                     .digest(input.getBytes(StandardCharsets.UTF_8));
-            return "sha256:" + HexFormat.of().formatHex(hash);
+            return HexFormat.of().formatHex(hash);
         } catch (Exception e) {
             return "HASH_UNAVAILABLE";
         }
