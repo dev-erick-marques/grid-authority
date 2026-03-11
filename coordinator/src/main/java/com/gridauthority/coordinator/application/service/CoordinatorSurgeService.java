@@ -4,6 +4,7 @@ import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
 import com.gridauthority.coordinator.domain.model.DeviceSurgeState;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
+import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
 import com.gridauthority.coordinator.infrastructure.http.DeviceSurgeClient;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
@@ -12,10 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.HexFormat;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Service
@@ -27,6 +25,7 @@ public class CoordinatorSurgeService {
     private final DeviceSurgeStateRepository surgeStateRepository;
     private final KmsSigningService kmsSigningService;
     private final HcsAnchorService hcsAnchorService;
+    private final ObjectMapper objectMapper;
 
     public DeviceSurgeState getSurgeState(String deviceId) {
         return surgeStateRepository.get(deviceId);
@@ -69,24 +68,17 @@ public class CoordinatorSurgeService {
 
 
     private void anchorSurge(String deviceId, String action, SignedCommandPayload signed) {
-        HcsEvent event = HcsEvent.surge(
-                deviceId,
-                action,
-                sha256(signed.canonicalJson()),
-                signed.keyId(),
-                signed.signingAlgorithm(),
-                signed.signatureBase64()
-        );
-        hcsAnchorService.anchorSurge(event);
-    }
-    private String sha256(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return "sha256:" + HexFormat.of().formatHex(hash);
-        } catch (Exception e) {
-            return "HASH_UNAVAILABLE";
-        }
+        HcsPayload payload = HcsPayload.builder()
+                .eventType(HcsEvent.EventType.SURGE.name())
+                .deviceId(deviceId)
+                .action(action)
+                .keyId(signed.keyId())
+                .signingAlgorithm(signed.signingAlgorithm())
+                .signatureBase64(signed.signatureBase64())
+                .timestamp(signed.issuedAt())
+                .build();
+
+        hcsAnchorService.anchorSurge(HcsEvent.of(payload, objectMapper));
     }
 
     @FunctionalInterface

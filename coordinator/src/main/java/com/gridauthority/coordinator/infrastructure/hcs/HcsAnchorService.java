@@ -78,7 +78,7 @@ public class HcsAnchorService {
                     .setMessage(payload.getBytes(StandardCharsets.UTF_8))
                     .executeAsync(hederaClient)
                     .thenRun(() -> log.info("[HCS] Anchored eventType={} topicId={} device={} payloadHash={}",
-                            label, topicIdStr, event.deviceId(), event.payloadHash()))
+                            label, topicIdStr, event.payload().deviceId(), event.sha256()))
                     .exceptionally(e -> {
                         log.error("[HCS] Failed to anchor eventType={} topicId={} — {}",
                                 label, topicIdStr, e.getMessage());

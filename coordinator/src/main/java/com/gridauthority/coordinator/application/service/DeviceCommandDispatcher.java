@@ -6,16 +6,14 @@ import com.gridauthority.coordinator.domain.model.DeviceCommand;
 import com.gridauthority.coordinator.domain.model.DeviceState;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
+import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
 import com.gridauthority.coordinator.infrastructure.http.DeviceCommandClient;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.HexFormat;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Service
@@ -26,6 +24,7 @@ public class DeviceCommandDispatcher {
     private final DeviceCommandClient deviceCommandClient;
     private final KmsSigningService kmsSigningService;
     private final HcsAnchorService hcsAnchorService;
+    private final ObjectMapper objectMapper;
 
     public void dispatch(DeviceMetricsDTO metrics, DeviceCommand command) {
 
@@ -57,31 +56,23 @@ public class DeviceCommandDispatcher {
                                 SignedCommandPayload signed) {
         String reason = switch (command) {
             case SHUTDOWN -> "CV exceeded threshold";
-            case RESTART -> "stable cycles reached";
-            default -> null;
+            case RESTART  -> "stable cycles reached";
+            default       -> null;
         };
         Double cv = command == DeviceCommand.SHUTDOWN ? metrics.cv() : null;
 
-        HcsEvent event = HcsEvent.decision(
-                metrics.deviceId(),
-                command.name(),
-                reason,
-                cv,
-                sha256(signed.canonicalJson()),
-                signed.keyId(),
-                signed.signingAlgorithm(),
-                signed.signatureBase64()
-        );
-        hcsAnchorService.anchorDecision(event);
-    }
+        HcsPayload payload = HcsPayload.builder()
+                .eventType(HcsEvent.EventType.DECISION.name())
+                .deviceId(metrics.deviceId())
+                .action(command.name())
+                .reason(reason)
+                .cv(cv)
+                .keyId(signed.keyId())
+                .signingAlgorithm(signed.signingAlgorithm())
+                .signatureBase64(signed.signatureBase64())
+                .timestamp(signed.issuedAt())
+                .build();
 
-    private String sha256(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return "sha256:" + HexFormat.of().formatHex(hash);
-        } catch (Exception e) {
-            return "HASH_UNAVAILABLE";
-        }
+        hcsAnchorService.anchorDecision(HcsEvent.of(payload, objectMapper));
     }
 }
