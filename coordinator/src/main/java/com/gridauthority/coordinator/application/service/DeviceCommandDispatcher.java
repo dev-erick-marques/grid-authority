@@ -4,6 +4,8 @@ import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
 import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
 import com.gridauthority.coordinator.domain.model.DeviceCommand;
 import com.gridauthority.coordinator.domain.model.DeviceState;
+import com.gridauthority.coordinator.infrastructure.audit.AuditEventPublisher;
+import com.gridauthority.coordinator.infrastructure.audit.AuditLogEntry;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
@@ -24,6 +26,7 @@ public class DeviceCommandDispatcher {
     private final DeviceCommandClient deviceCommandClient;
     private final KmsSigningService kmsSigningService;
     private final HcsAnchorService hcsAnchorService;
+    private final AuditEventPublisher auditEventPublisher;
     private final ObjectMapper objectMapper;
 
     public void dispatch(DeviceMetricsDTO metrics, DeviceCommand command) {
@@ -41,7 +44,13 @@ public class DeviceCommandDispatcher {
 
         SignedCommandPayload signed = kmsSigningService.createSignedCommand(
                 metrics.deviceId(), command.name());
-
+        auditEventPublisher.publish(
+                AuditLogEntry.kmsSigned(
+                        metrics.deviceId(),
+                        command.name(),
+                        signed.keyId()
+                )
+        );
         deviceRegistry.resolve(metrics.deviceId()).ifPresentOrElse(
                 baseUrl -> {
                     deviceCommandClient.send(baseUrl, metrics.deviceId(), command, signed);
