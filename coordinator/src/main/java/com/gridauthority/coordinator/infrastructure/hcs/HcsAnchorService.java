@@ -51,7 +51,8 @@ public class HcsAnchorService {
     }
 
     public void anchorAuthorityKey(HcsEvent event) {
-        publish(hcsProperties.getPublicKeyTopicId(), event, "AUTHORITY_KEY_PUBLISHED");
+        publish(hcsProperties.getPublicKeyTopicId(), event,
+        HcsEvent.EventType.AUTHORITY_KEY_PUBLISHED_ON_BOOT.name());
     }
 
     public void anchorDecision(HcsEvent event) {
