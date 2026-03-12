@@ -5,10 +5,10 @@ import com.gridauthority.coordinator.domain.model.DeviceSurgeState;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
-import com.gridauthority.coordinator.infrastructure.http.DeviceSurgeClient;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
 import com.gridauthority.coordinator.infrastructure.repository.DeviceSurgeStateRepository;
+import com.gridauthority.coordinator.infrastructure.transport.SurgeTransport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import tools.jackson.databind.ObjectMapper;
 public class CoordinatorSurgeService {
 
     private final DeviceRegistry deviceRegistry;
-    private final DeviceSurgeClient deviceSurgeClient;
+    private final SurgeTransport surgeTransport;
     private final DeviceSurgeStateRepository surgeStateRepository;
     private final KmsSigningService kmsSigningService;
     private final HcsAnchorService hcsAnchorService;
@@ -52,7 +52,7 @@ public class CoordinatorSurgeService {
 
         deviceRegistry.resolve(deviceId).ifPresentOrElse(baseUrl -> {
             try {
-                deviceSurgeClient.send(baseUrl, deviceId, action, signed);
+                surgeTransport.send(baseUrl, deviceId, action, signed);
                 surgeStateRepository.set(deviceId, nextState);
                 log.info("[SURGE] {} → device={} state={}", action, deviceId, nextState);
                 anchorSurge(deviceId, action, signed);
@@ -65,7 +65,6 @@ public class CoordinatorSurgeService {
             throw new IllegalStateException("Device not registered: " + deviceId);
         });
     }
-
 
     private void anchorSurge(String deviceId, String action, SignedCommandPayload signed) {
         HcsPayload payload = HcsPayload.builder()
