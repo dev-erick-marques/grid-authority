@@ -80,9 +80,4 @@ public class CoordinatorSurgeService {
 
         hcsAnchorService.anchorSurge(HcsEvent.of(payload, objectMapper));
     }
-
-    @FunctionalInterface
-    private interface SurgeAction {
-        void execute(String baseUrl);
-    }
 }
