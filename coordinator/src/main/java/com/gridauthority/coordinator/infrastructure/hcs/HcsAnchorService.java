@@ -1,5 +1,7 @@
 package com.gridauthority.coordinator.infrastructure.hcs;
 
+import com.gridauthority.coordinator.infrastructure.audit.AuditEventPublisher;
+import com.gridauthority.coordinator.infrastructure.audit.AuditLogEntry;
 import com.gridauthority.coordinator.infrastructure.config.HcsProperties;
 import com.hedera.hashgraph.sdk.*;
 import jakarta.annotation.PostConstruct;
@@ -20,6 +22,7 @@ public class HcsAnchorService {
     private final HcsProperties hcsProperties;
     private final ObjectMapper objectMapper;
     private Client hederaClient;
+    private final AuditEventPublisher auditEventPublisher;
 
     @PostConstruct
     public void init() {
@@ -77,11 +80,16 @@ public class HcsAnchorService {
                     .setTopicId(topicId)
                     .setMessage(payload.getBytes(StandardCharsets.UTF_8))
                     .executeAsync(hederaClient)
-                    .thenRun(() -> log.info("[HCS] Anchored eventType={} topicId={} device={} payloadHash={}",
-                            label, topicIdStr, event.payload().deviceId(), event.sha256()))
+                    .thenRun(() -> {
+                        log.info("[HCS] Anchored eventType={} topicId={} device={} payloadHash={}",
+                            label, topicIdStr, event.payload().deviceId(), event.sha256());
+                        auditEventPublisher.publish(AuditLogEntry.fromHcsEvent(event, "HCS_ANCHORED", topicIdStr));
+
+                    })
                     .exceptionally(e -> {
                         log.error("[HCS] Failed to anchor eventType={} topicId={} — {}",
                                 label, topicIdStr, e.getMessage());
+                        auditEventPublisher.publish(AuditLogEntry.fromHcsEvent(event, "HCS_ERROR", topicIdStr));
                         return null;
                     });
 
