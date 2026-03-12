@@ -65,7 +65,7 @@ public class KmsSigningService {
             return buildUnsignedPayload(deviceId, action, issuedAt, canonicalJson);
         }
 
-        String signatureBase64 = signWithKms(context);
+        String signatureBase64 = signCanonical(context);
         log.info("[KMS] Signed action={} device={} keyId={} canonical={}",
                 action, deviceId, kmsProperties.getKeyId(), canonicalJson);
 
@@ -76,7 +76,7 @@ public class KmsSigningService {
         );
     }
 
-    private String signWithKms(CommandSigningContext context) {
+    private String  signCanonical(CommandSigningContext context) {
         byte[] canonicalBytes = canonicalJsonMapper.writeCanonical(context);
         try {
             byte[] signatureBytes = kmsClient.sign(SignRequest.builder()
