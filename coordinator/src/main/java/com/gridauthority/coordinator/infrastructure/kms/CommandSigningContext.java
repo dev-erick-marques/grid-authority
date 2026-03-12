@@ -1,4 +1,4 @@
-package com.gridauthority.coordinator.application.dto;
+package com.gridauthority.coordinator.infrastructure.kms;
 
 public record CommandSigningContext(
         String action,
