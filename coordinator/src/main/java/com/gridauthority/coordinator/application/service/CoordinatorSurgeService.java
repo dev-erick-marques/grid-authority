@@ -48,7 +48,7 @@ public class CoordinatorSurgeService {
     }
 
     private void dispatch(String deviceId, DeviceSurgeState nextState, String action) {
-        SignedCommandPayload signed = kmsSigningService.createSignedCommand(deviceId, action);
+        SignedCommandPayload signed = kmsSigningService.issueCommand(deviceId, action);
 
         deviceRegistry.resolve(deviceId).ifPresentOrElse(baseUrl -> {
             try {

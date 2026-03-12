@@ -56,7 +56,7 @@ public class KmsSigningService {
         }
     }
 
-    public SignedCommandPayload createSignedCommand(String deviceId, String action) {
+    public SignedCommandPayload issueCommand(String deviceId, String action) {
         long issuedAt = System.currentTimeMillis();
         CommandSigningContext context = new CommandSigningContext(action, deviceId, issuedAt);
         String canonicalJson = canonicalJsonMapper.writeCanonicalAsString(context);

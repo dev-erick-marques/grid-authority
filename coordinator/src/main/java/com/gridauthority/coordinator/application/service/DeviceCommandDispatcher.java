@@ -42,7 +42,7 @@ public class DeviceCommandDispatcher {
             return;
         }
 
-        SignedCommandPayload signed = kmsSigningService.createSignedCommand(
+        SignedCommandPayload signed = kmsSigningService.issueCommand(
                 metrics.deviceId(), command.name());
         auditEventPublisher.publish(
                 AuditLogEntry.kmsSigned(
