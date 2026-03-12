@@ -3,7 +3,7 @@ package com.gridauthority.coordinator.application.service;
 import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
 import com.gridauthority.coordinator.application.dto.DeviceTelemetryDTO;
 import com.gridauthority.coordinator.domain.model.DeviceCommand;
-import com.gridauthority.coordinator.domain.service.StabilityPolicyEvaluator;
+import com.gridauthority.coordinator.domain.service.StabilityEvaluator;
 import com.gridauthority.coordinator.domain.service.VoltageStatisticsService;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
 import com.gridauthority.coordinator.infrastructure.repository.DeviceSurgeStateRepository;
@@ -28,7 +28,7 @@ public class TelemetryIngestionService {
 
     private final VoltageWindowRepository voltageWindowRepository;
     private final VoltageStatisticsService voltageStatisticsService;
-    private final StabilityPolicyEvaluator stabilityPolicyEvaluator;
+    private final StabilityEvaluator stabilityEvaluator;
     private final StableCycleTracker stableCycleTracker;
     private final DeviceRegistry deviceRegistry;
     private final MetricsHistoryRepository metricsHistoryRepository;
@@ -66,7 +66,7 @@ public class TelemetryIngestionService {
         synchronized (lock) {
             int stableCycles = stableCycleTracker.getStableCycles(telemetry.deviceId());
 
-            DeviceCommand command = stabilityPolicyEvaluator.evaluate(
+            DeviceCommand command = stabilityEvaluator.evaluate(
                     stats.cv(),
                     telemetry.status(),
                     stableCycles
