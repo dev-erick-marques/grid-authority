@@ -9,9 +9,9 @@ import com.gridauthority.coordinator.infrastructure.audit.AuditLogEntry;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
-import com.gridauthority.coordinator.infrastructure.http.DeviceCommandClient;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
+import com.gridauthority.coordinator.infrastructure.transport.CommandTransport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 public class DeviceCommandDispatcher {
 
     private final DeviceRegistry deviceRegistry;
-    private final DeviceCommandClient deviceCommandClient;
+    private final CommandTransport commandTransport;
     private final KmsSigningService kmsSigningService;
     private final HcsAnchorService hcsAnchorService;
     private final AuditEventPublisher auditEventPublisher;
@@ -53,7 +53,7 @@ public class DeviceCommandDispatcher {
         );
         deviceRegistry.resolve(metrics.deviceId()).ifPresentOrElse(
                 baseUrl -> {
-                    deviceCommandClient.send(baseUrl, metrics.deviceId(), command, signed);
+                    commandTransport.send(baseUrl, metrics.deviceId(), command, signed);
                     anchorDecision(metrics, command, signed);
                 },
                 () -> log.warn("[DISPATCH] No URL registered for device={} — {} not delivered",
