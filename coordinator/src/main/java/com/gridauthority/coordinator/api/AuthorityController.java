@@ -1,6 +1,7 @@
 package com.gridauthority.coordinator.api;
 
 
+import com.gridauthority.coordinator.application.dto.PublicKeyResponseDTO;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +16,7 @@ public class AuthorityController {
     private final KmsSigningService kmsSigningService;
 
     @GetMapping(value = "/public-key")
-    public KmsSigningService.PublicKeyResponseDTO getPublicKey() {
+    public PublicKeyResponseDTO getPublicKey() {
         return kmsSigningService.getPublicKeyResponse();
     }
 }

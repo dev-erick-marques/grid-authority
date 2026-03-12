@@ -3,6 +3,7 @@ package com.gridauthority.coordinator.infrastructure.kms;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gridauthority.coordinator.application.dto.CommandSigningContext;
+import com.gridauthority.coordinator.application.dto.PublicKeyResponseDTO;
 import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
 import com.gridauthority.coordinator.domain.exceptions.KmsPublicKeyNotLoadedException;
 import com.gridauthority.coordinator.domain.exceptions.KmsSigningFailedException;
@@ -115,10 +116,4 @@ public class KmsSigningService {
                 Base64.getEncoder().encodeToString(cachedPublicKeyDer)
         );
     }
-
-    public record PublicKeyResponseDTO(
-            @JsonProperty("keyId") String keyId,
-            @JsonProperty("signingAlgorithm") String signingAlgorithm,
-            @JsonProperty("publicKeyBase64") String publicKeyBase64
-    ) {}
 }

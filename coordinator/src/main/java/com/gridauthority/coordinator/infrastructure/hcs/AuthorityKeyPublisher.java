@@ -1,5 +1,6 @@
 package com.gridauthority.coordinator.infrastructure.hcs;
 
+import com.gridauthority.coordinator.application.dto.PublicKeyResponseDTO;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ public class AuthorityKeyPublisher {
     @PostConstruct
     public void publishOnBoot() {
         try {
-            KmsSigningService.PublicKeyResponseDTO keyResponse =
+            PublicKeyResponseDTO keyResponse =
                     kmsSigningService.getPublicKeyResponse();
 
             HcsPayload payload = HcsPayload.builder()
