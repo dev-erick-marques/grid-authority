@@ -1,5 +1,6 @@
 package com.gridauthority.coordinator.api;
 
+import com.gridauthority.coordinator.application.dto.HcsTopicsDTO;
 import com.gridauthority.coordinator.infrastructure.audit.AuditEventPublisher;
 import com.gridauthority.coordinator.infrastructure.config.HcsProperties;
 import lombok.RequiredArgsConstructor;
@@ -33,11 +34,4 @@ public class AuditController {
                 hcsProperties.getSurgeTopicId()
         );
     }
-
-    public record HcsTopicsDTO(
-            String network,
-            String publicKeyTopicId,
-            String decisionTopicId,
-            String surgeTopicId
-    ) {}
 }
