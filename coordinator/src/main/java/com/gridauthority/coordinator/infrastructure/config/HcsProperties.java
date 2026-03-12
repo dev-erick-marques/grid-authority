@@ -17,6 +17,6 @@ public class HcsProperties {
     private String privateKey;
     private String decisionTopicId;
     private String surgeTopicId;
-    private String PublicKeyTopicId;
+    private String publicKeyTopicId;
 
 }
