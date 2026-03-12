@@ -6,6 +6,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 import { MetricSelector } from './components/MetricSelector'
 import { DeviceCard } from './components/DeviceCard'
 import { usePolicy } from './hooks/usePolicy'
+import { AuditLog } from './components/Auditlog'
 
 export default function App() {
   const [metricKey, setMetricKey] = useState<MetricConfig['key']>('cv')
@@ -57,6 +58,7 @@ export default function App() {
             </div>
           ))}
         </div>
+        <AuditLog />
       </div>
     </div>
   )
