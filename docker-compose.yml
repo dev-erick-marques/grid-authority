@@ -14,6 +14,7 @@ services:
       VOLTAGE_REPOSITORY_WINDOW_SIZE: 10
       METRICS_HISTORY_SIZE: 20
       POLICY_STABLE_CYCLES_REQUIRED: 60
+      HCS_ENABLED: true
     networks:
       - gridnet
     healthcheck:
@@ -42,6 +43,14 @@ services:
       DEVICE_SIMULATION_SURGE_INTERVAL_MS: 90000
       COORDINATOR_URL: http://coordinator:8080
       DEVICE_NETWORK_URL: http://device-01:8081
+      HEDERA_PUBLIC_KEY_TOPIC_ID: ${HEDERA_PUBLIC_KEY_TOPIC_ID}
+      # Security
+      # command.verification.enabled depends on hcs.enabled:
+      # if verification is true but hcs is false, the device will fail to
+      # resolve the coordinator public key and reject all incoming commands.
+      # In production both must be true.
+      HCS_ENABLED: true
+      COMMAND_VERIFICATION_ENABLED: true
     networks:
       - gridnet
     depends_on:
@@ -67,6 +76,14 @@ services:
       DEVICE_SIMULATION_SURGE_INTERVAL_MS: 90000
       COORDINATOR_URL: http://coordinator:8080
       DEVICE_NETWORK_URL: http://device-02:8082
+      HEDERA_PUBLIC_KEY_TOPIC_ID: ${HEDERA_PUBLIC_KEY_TOPIC_ID}
+      # Security
+      # command.verification.enabled depends on hcs.enabled:
+      # if verification is true but hcs is false, the device will fail to
+      # resolve the coordinator public key and reject all incoming commands.
+      # In production both must be true.
+      HCS_ENABLED: true
+      COMMAND_VERIFICATION_ENABLED: true
     networks:
       - gridnet
     depends_on:
