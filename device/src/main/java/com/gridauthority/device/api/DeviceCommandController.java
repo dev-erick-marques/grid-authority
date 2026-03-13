@@ -5,9 +5,11 @@ import com.gridauthority.device.aplication.service.CommandVerificationService;
 import com.gridauthority.device.aplication.service.DeviceStateService;
 import com.gridauthority.device.domain.model.DeviceCommand;
 import com.gridauthority.device.domain.model.DeviceState;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -15,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
+@Validated
 public class DeviceCommandController {
 
     private final DeviceStateService deviceStateService;
@@ -26,7 +29,7 @@ public class DeviceCommandController {
     }
 
     @PostMapping("/command")
-    public DeviceState command(@RequestBody SignedCommandDTO signed) {
+    public DeviceState command(@RequestBody @Valid SignedCommandDTO signed) {
         verificationService.verify(
                 signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt()
         );
