@@ -3,17 +3,19 @@ package com.gridauthority.coordinator.domain.service;
 import com.gridauthority.coordinator.application.dto.StabilityThreshold;
 import com.gridauthority.coordinator.domain.model.DeviceCommand;
 import com.gridauthority.coordinator.domain.model.DeviceState;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@Getter
 public class StabilityEvaluator {
 
     // EN 50160: ±10% nominal voltage variation limit.
     // Normative constant — not configurable by design.
     private static final double THRESHOLD_CV = 10.0;
 
-    @Value("${stability.stable-cycles-required:10}")
+    @Value("${stability.stable-cycles-required}")
     private int stableCyclesRequired;
 
     public DeviceCommand evaluate(double cv, DeviceState currentStatus, int stableCycles) {
