@@ -3,6 +3,7 @@ package com.gridauthority.device.api;
 import com.gridauthority.device.domain.exception.DeviceAlreadyActiveException;
 import com.gridauthority.device.domain.exception.DeviceAlreadyShutdownException;
 import com.gridauthority.device.domain.exception.SignatureVerificationException;
+import com.gridauthority.device.domain.exception.UnknownCommandException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -46,8 +47,8 @@ public class DeviceExceptionHandler {
         return buildProblemDetail(HttpStatus.CONFLICT, ex.getMessage(), ErrorCode.DEVICE_ALREADY_ACTIVE);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ProblemDetail handleUnknownCommand(IllegalArgumentException ex) {
+    @ExceptionHandler(UnknownCommandException.class)
+    public ProblemDetail handleUnknownCommand(UnknownCommandException ex) {
         return buildProblemDetail(HttpStatus.BAD_REQUEST, ex.getMessage(), ErrorCode.UNKNOWN_COMMAND);
     }
 

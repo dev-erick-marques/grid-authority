@@ -3,6 +3,7 @@ package com.gridauthority.device.api;
 import com.gridauthority.device.aplication.dto.SignedCommandDTO;
 import com.gridauthority.device.aplication.service.CommandVerificationService;
 import com.gridauthority.device.aplication.service.DeviceStateService;
+import com.gridauthority.device.domain.exception.UnknownCommandException;
 import com.gridauthority.device.domain.model.DeviceCommand;
 import com.gridauthority.device.domain.model.DeviceState;
 import jakarta.validation.Valid;
@@ -38,8 +39,7 @@ public class DeviceCommandController {
         try {
             command = DeviceCommand.valueOf(signed.action());
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Unknown device command: " + signed.action());
+            throw new UnknownCommandException(signed.action());
         }
 
         log.info("[COMMAND] Verified {} for device={}", command, signed.deviceId());

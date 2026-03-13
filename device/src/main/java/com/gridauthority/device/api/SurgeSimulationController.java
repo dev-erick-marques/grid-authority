@@ -3,6 +3,7 @@ package com.gridauthority.device.api;
 import com.gridauthority.device.aplication.dto.SignedCommandDTO;
 import com.gridauthority.device.aplication.service.CommandVerificationService;
 import com.gridauthority.device.aplication.service.SurgeModeService;
+import com.gridauthority.device.domain.exception.UnknownCommandException;
 import com.gridauthority.device.domain.model.SurgeAction;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +38,7 @@ public class SurgeSimulationController {
         try {
             surgeAction = SurgeAction.valueOf(signed.action());
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Unknown surge action: " + signed.action());
+            throw new UnknownCommandException(signed.action());
         }
 
         return switch (surgeAction) {
