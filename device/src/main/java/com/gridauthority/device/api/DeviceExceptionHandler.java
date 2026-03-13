@@ -57,4 +57,15 @@ public class DeviceExceptionHandler {
         return buildProblemDetail(HttpStatus.BAD_REQUEST,
                 "request_authentication_failed", ErrorCode.SIGNATURE_VERIFICATION_FAILED);
     }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
+        List<String> violations = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .toList();
+        ProblemDetail problem = buildProblemDetail(HttpStatus.BAD_REQUEST,
+                "Request validation failed", ErrorCode.VALIDATION_ERROR);
+        problem.setProperty("violations", violations);
+        return problem;
+    }
 }
