@@ -1,6 +1,7 @@
 package com.gridauthority.coordinator.api;
 
 import com.gridauthority.coordinator.domain.exceptions.*;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.List;
 
 @Slf4j
 @RestControllerAdvice
@@ -17,7 +19,8 @@ public class CoordinatorExceptionHandler {
         KMS_UNAVAILABLE,
         KMS_PUBLIC_KEY_NOT_LOADED,
         KMS_SIGNING_FAILED,
-        CANONICAL_SERIALIZATION_FAILED
+        CANONICAL_SERIALIZATION_FAILED,
+        VALIDATION_ERROR
     }
 
     private ProblemDetail buildProblemDetail(HttpStatus status, String message, ErrorCode errorCode) {
@@ -53,5 +56,17 @@ public class CoordinatorExceptionHandler {
         return buildProblemDetail(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Payload serialization error",
                 ErrorCode.CANONICAL_SERIALIZATION_FAILED);
+    }
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
+        List<String> violations = ex.getConstraintViolations().stream()
+                .map(cv -> cv.getPropertyPath() + ": " + cv.getMessage())
+                .toList();
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Request validation failed");
+        problem.setProperty("timestamp", Instant.now());
+        problem.setProperty("errorCode", ErrorCode.VALIDATION_ERROR.name());
+        problem.setProperty("violations", violations);
+        return problem;
     }
 }
