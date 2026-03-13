@@ -80,6 +80,8 @@ public class TelemetryIngestionService {
                     stats.cv(),
                     telemetry.status(),
                     surgeStateRepository.get(telemetry.deviceId()),
+                    stableCycles,
+                    stabilityEvaluator.getStableCyclesRequired(),
                     telemetry.timestamp()
             );
             metricsHistoryRepository.add(metrics);

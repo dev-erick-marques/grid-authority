@@ -13,5 +13,7 @@ public record DeviceMetricsDTO(
         double cv,
         DeviceState state,
         DeviceSurgeState surgeState,
+        int stableCycle,
+        int stableCyclesRequired,
         Instant evaluatedAt
 ) {}

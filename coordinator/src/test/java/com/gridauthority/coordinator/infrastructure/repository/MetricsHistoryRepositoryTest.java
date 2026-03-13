@@ -110,6 +110,8 @@ class MetricsHistoryRepositoryTest {
                 0.01,
                 DeviceState.SHUTDOWN,
                 DeviceSurgeState.INACTIVE,
+                1,
+                10,
                 Instant.now()
         );
     }
