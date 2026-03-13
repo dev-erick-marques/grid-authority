@@ -13,6 +13,8 @@ export interface ChartEntry {
   state: DeviceState
   surgeState: DeviceSurgeState
   decision: string 
+  stableCycle: number
+  stableCyclesRequired: number
   evaluatedAt?: string
 }
 
@@ -24,6 +26,8 @@ export interface DeviceMetricsDTO {
   cv: number
   state: DeviceState
   surgeState: DeviceSurgeState
+  stableCycle: number
+  stableCyclesRequired: number
   evaluatedAt: string
 }
 
@@ -39,7 +43,9 @@ function normalise(raw: DeviceMetricsDTO, index: number): ChartEntry {
     state: raw.state,
     surgeState: raw.surgeState ?? 'INACTIVE',
     decision: shutdown ? 'SHUTDOWN' : 'STABLE',
-    evaluatedAt: raw.evaluatedAt,
+    stableCycle: raw.stableCycle ?? 0,
+    stableCyclesRequired: raw.stableCyclesRequired ?? 0,
+    evaluatedAt: raw.evaluatedAt
   }
 }
 

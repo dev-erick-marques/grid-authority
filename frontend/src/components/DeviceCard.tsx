@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
     LineChart, Line, XAxis, YAxis,
     CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
@@ -13,6 +13,31 @@ import { StatBadge } from './StatBadge'
 import { SurgeToggle, SurgePanel } from './SurgePanel'
 
 type DeviceState = 'ACTIVE' | 'SHUTDOWN'
+
+function RestartCountdown({ stableCycle, stableCyclesRequired }: { stableCycle: number; stableCyclesRequired: number }) {
+    const [tick, setTick] = useState(stableCycle)
+
+    useEffect(() => {
+        setTick(stableCycle)
+    }, [stableCycle])
+
+    useEffect(() => {
+        const id = setInterval(() => setTick((t) => Math.min(t + 1, stableCyclesRequired)), 1000)
+        return () => clearInterval(id)
+    }, [stableCyclesRequired])
+
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 11,
+            color: '#ff4757',
+            letterSpacing: '0.04em',
+        }}>
+            {tick}<span style={{ opacity: 0.5 }}>/{stableCyclesRequired}</span>
+        </div>
+    )
+}
 
 
 function DecisionPill({ state, ready }: { state: DeviceState | undefined; ready: boolean }) {
@@ -80,9 +105,9 @@ function surgeCardStyle(surgeState: DeviceSurgeState, isShutdown: boolean) {
 }
 
 interface DeviceCardProps {
-  device:      DiscoveredDevice
-  metricKey:   MetricConfig['key']
-  thresholdCV: number
+    device: DiscoveredDevice
+    metricKey: MetricConfig['key']
+    thresholdCV: number
 }
 
 export function DeviceCard({ device, metricKey, thresholdCV }: DeviceCardProps) {
@@ -109,6 +134,12 @@ export function DeviceCard({ device, metricKey, thresholdCV }: DeviceCardProps) 
                     <div className="card-device-name">{device.label}</div>
                 </div>
                 <div className="card-header-actions">
+                    {isShutdown && (latest?.stableCycle ?? 0) > 1 && (
+                        <RestartCountdown
+                            stableCycle={latest!.stableCycle}
+                            stableCyclesRequired={latest!.stableCyclesRequired}
+                        />
+                    )}
                     <DecisionPill state={latest?.state} ready={!!latest} />
                     <SurgeToggle
                         surgeState={surgeState}
