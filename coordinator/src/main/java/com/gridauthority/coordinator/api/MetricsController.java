@@ -4,9 +4,12 @@ import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
 import com.gridauthority.coordinator.application.dto.DeviceTelemetryDTO;
 import com.gridauthority.coordinator.application.service.TelemetryIngestionService;
 import com.gridauthority.coordinator.infrastructure.repository.MetricsHistoryRepository;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -16,6 +19,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
+@Validated
 public class MetricsController {
 
     private final MetricsHistoryRepository metricsHistoryRepository;
@@ -23,7 +27,7 @@ public class MetricsController {
 
     @PostMapping("/devices/telemetry")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void ingest(@RequestBody DeviceTelemetryDTO telemetry) {
+    public void ingest(@RequestBody @Valid DeviceTelemetryDTO telemetry) {
         telemetryIngestionService.ingest(telemetry);
     }
 
@@ -33,7 +37,7 @@ public class MetricsController {
     }
 
     @GetMapping("/devices/{deviceId}/metrics")
-    public List<DeviceMetricsDTO> getByDevice(@PathVariable String deviceId) {
+    public List<DeviceMetricsDTO> getByDevice(@PathVariable @NotBlank String deviceId) {
         return metricsHistoryRepository.getByDevice(deviceId);
     }
 

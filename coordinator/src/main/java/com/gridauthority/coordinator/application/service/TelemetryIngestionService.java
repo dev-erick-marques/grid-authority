@@ -10,6 +10,7 @@ import com.gridauthority.coordinator.infrastructure.repository.DeviceSurgeStateR
 import com.gridauthority.coordinator.infrastructure.repository.MetricsHistoryRepository;
 import com.gridauthority.coordinator.infrastructure.repository.StableCycleTracker;
 import com.gridauthority.coordinator.infrastructure.repository.VoltageWindowRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
