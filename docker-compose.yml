@@ -114,6 +114,19 @@ services:
       coordinator:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - gridnet
+    depends_on:
+      coordinator:
+        condition: service_healthy
+
 networks:
   gridnet:
     driver: bridge
