@@ -20,7 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DeviceCommandDispatcher {
+public class DeviceCommandService {
 
     private final DeviceRegistry deviceRegistry;
     private final CommandTransport commandTransport;
