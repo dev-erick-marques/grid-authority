@@ -10,7 +10,6 @@ import com.gridauthority.coordinator.infrastructure.repository.DeviceSurgeStateR
 import com.gridauthority.coordinator.infrastructure.repository.MetricsHistoryRepository;
 import com.gridauthority.coordinator.infrastructure.repository.StableCycleTracker;
 import com.gridauthority.coordinator.infrastructure.repository.VoltageWindowRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +32,7 @@ public class TelemetryIngestionService {
     private final StableCycleTracker stableCycleTracker;
     private final DeviceRegistry deviceRegistry;
     private final MetricsHistoryRepository metricsHistoryRepository;
-    private final DeviceCommandDispatcher dispatcher;
+    private final DeviceCommandService dispatcher;
     private final DeviceSurgeStateRepository surgeStateRepository;
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
