@@ -68,14 +68,15 @@ public class DeviceCommandDispatcher {
             case RESTART  -> "stable cycles reached";
             default       -> null;
         };
-        Double cv = command == DeviceCommand.SHUTDOWN ? metrics.cv() : null;
 
         HcsPayload payload = HcsPayload.builder()
                 .eventType(HcsEvent.EventType.DECISION.name())
                 .deviceId(metrics.deviceId())
                 .action(command.name())
                 .reason(reason)
-                .cv(cv)
+                .cv(metrics.cv())
+                .mean(metrics.mean())
+                .std(metrics.std())
                 .keyId(signed.keyId())
                 .signingAlgorithm(signed.signingAlgorithm())
                 .signatureBase64(signed.signatureBase64())
