@@ -16,11 +16,12 @@ public class StableCycleTracker {
         return counter != null ? counter.get() : 0;
     }
 
-    public void record(String deviceId, DeviceCommand command) {
+    public void record(String deviceId, DeviceCommand command, int cap) {
         switch (command) {
-            case KEEP_RUNNING -> stableCycles
-                    .computeIfAbsent(deviceId, k -> new AtomicInteger(0))
-                    .incrementAndGet();
+            case KEEP_RUNNING -> {
+                AtomicInteger counter = stableCycles.computeIfAbsent(deviceId, k -> new AtomicInteger(0));
+                counter.getAndUpdate(v -> v < cap ? v + 1 : v);
+            }
             case SHUTDOWN, RESTART -> {
                 AtomicInteger counter = stableCycles.get(deviceId);
                 if (counter != null) counter.set(0);

@@ -85,7 +85,7 @@ public class TelemetryIngestionService {
                     telemetry.timestamp()
             );
             metricsHistoryRepository.add(metrics);
-            stableCycleTracker.record(metrics.deviceId(), command);
+            stableCycleTracker.record(metrics.deviceId(), command, stabilityEvaluator.getStableCyclesRequired());
             dispatcher.dispatch(metrics, command);
         }
 
