@@ -13,10 +13,16 @@ public record AuthorityKeyMessage(
         @JsonProperty("payloadHash") String payloadHash,
         @JsonProperty("timestamp") long timestamp
 ) {
-    public boolean isAuthorityKeyPublished() {
+
+    public boolean isBootstrapKey() {
         return "AUTHORITY_KEY_PUBLISHED_ON_BOOT".equals(eventType);
     }
-    public boolean isAuthorityKeyRotation() {
+
+    public boolean isRotationKey() {
         return "AUTHORITY_KEY_PUBLISHED_ON_ROTATION".equals(eventType);
+    }
+
+    public boolean isAuthorityKeyPublished() {
+        return isBootstrapKey() || isRotationKey();
     }
 }

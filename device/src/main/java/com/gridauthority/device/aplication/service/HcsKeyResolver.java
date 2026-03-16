@@ -140,7 +140,7 @@ public class HcsKeyResolver {
             String json = new String(message.contents, StandardCharsets.UTF_8);
             AuthorityKeyMessage msg = objectMapper.readValue(json, AuthorityKeyMessage.class);
 
-            if (!msg.isAuthorityKeyRotation()) return;
+            if (!msg.isRotationKey()) return;
 
             Instant msgInstant = Instant.ofEpochMilli(msg.timestamp());
             if (!msgInstant.isAfter(activeKeyTimestamp.get())) {
