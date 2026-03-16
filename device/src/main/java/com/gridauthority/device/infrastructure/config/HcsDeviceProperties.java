@@ -15,5 +15,6 @@ public class HcsDeviceProperties {
     private boolean enabled = false;
     private String network = "testnet";
     private int maxMessagesToScan = 100;
-    private String PublicKeyTopicId;
+    private long keyActivationGraceMs = 0;
+    private String publicKeyTopicId;
 }

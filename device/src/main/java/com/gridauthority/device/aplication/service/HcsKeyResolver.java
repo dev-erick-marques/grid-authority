@@ -38,6 +38,7 @@ public class HcsKeyResolver {
 
     private final AtomicReference<PublicKey> resolvedPublicKeyRef = new AtomicReference<>();
     private final AtomicReference<Instant> activeKeyTimestamp = new AtomicReference<>(Instant.EPOCH);
+    private final AtomicReference<Instant> keyActiveFrom = new AtomicReference<>(Instant.EPOCH);
 
     @PostConstruct
     public void resolveOnStartup() {
@@ -73,10 +74,20 @@ public class HcsKeyResolver {
 
     public PublicKey getResolvedPublicKey()  { return resolvedPublicKeyRef.get(); }
 
+
+    public boolean isKeyActive() {
+        if (resolvedPublicKeyRef.get() == null) return false;
+        return Instant.now().compareTo(keyActiveFrom.get()) >= 0;
+    }
+
+    public Instant getKeyActiveFrom() {
+        return keyActiveFrom.get();
+    }
+
     private void resolveInitialKey() throws Exception {
         TopicId topicId    = TopicId.fromString(hcsDeviceProperties.getPublicKeyTopicId());
         int maxMessages    = hcsDeviceProperties.getMaxMessagesToScan();
-        List<AuthorityKeyMessage> collected = new ArrayList<>();
+        List<BootEntry> collected = new ArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
 
         log.info("[HCS_DEVICE] Boot scan — publicKeyTopicId={} network={} maxMessages={}",
@@ -96,15 +107,18 @@ public class HcsKeyResolver {
         applyLatestKey(collected);
     }
 
+    private record BootEntry(AuthorityKeyMessage msg, TopicMessage raw) {}
+
     private void handleBootMessage(TopicMessage message,
-                                   List<AuthorityKeyMessage> collected,
+                                   List<BootEntry> collected,
                                    CountDownLatch latch, int maxMessages) {
         try {
             String json = new String(message.contents, StandardCharsets.UTF_8);
             AuthorityKeyMessage msg = objectMapper.readValue(json, AuthorityKeyMessage.class);
             if (msg.isAuthorityKeyPublished()) {
-                collected.add(msg);
-                log.debug("[HCS_DEVICE] Boot scan found AUTHORITY_KEY_PUBLISHED — keyId={}", msg.keyId());
+                collected.add(new BootEntry(msg, message));
+                log.debug("[HCS_DEVICE] Boot scan found {} — keyId={} consensusTimestamp={}",
+                        msg.eventType(), msg.keyId(), message.consensusTimestamp);
             }
             if (collected.size() >= maxMessages) latch.countDown();
         } catch (Exception e) {
@@ -112,11 +126,11 @@ public class HcsKeyResolver {
         }
     }
 
-    private void applyLatestKey(List<AuthorityKeyMessage> collected) {
+    private void applyLatestKey(List<BootEntry> collected) {
         collected.stream()
-                .max(Comparator.comparingLong(AuthorityKeyMessage::timestamp))
+                .max(Comparator.comparing(e -> e.raw().consensusTimestamp))
                 .ifPresentOrElse(
-                        latest -> applyKey(latest, null),
+                        latest -> applyKey(latest.msg(), latest.raw().consensusTimestamp),
                         () -> log.warn("[HCS_DEVICE] No AUTHORITY_KEY_PUBLISHED found in topic={}",
                                 hcsDeviceProperties.getPublicKeyTopicId())
                 );
@@ -159,16 +173,14 @@ public class HcsKeyResolver {
     private void applyKey(AuthorityKeyMessage msg, Instant consensusTimestamp) {
         PublicKey publicKey = buildEcPublicKey(msg.publicKeyBase64());
 
+        Instant activeFrom = consensusTimestamp.plusMillis(hcsDeviceProperties.getKeyActivationGraceMs());
+
         resolvedPublicKeyRef.set(publicKey);
+        activeKeyTimestamp.set(consensusTimestamp);
+        keyActiveFrom.set(activeFrom);
 
-        Instant effectiveTimestamp = consensusTimestamp != null
-                ? consensusTimestamp
-                : Instant.ofEpochMilli(msg.timestamp());
-        activeKeyTimestamp.set(effectiveTimestamp);
-
-        log.info("[HCS_DEVICE] Public key applied — keyId={} algorithm={} effectiveAt={}",
-                msg.keyId(), msg.signingAlgorithm(), effectiveTimestamp);
-
+        log.info("[HCS_DEVICE] Public key applied — keyId={} algorithm={} consensusTimestamp={} activeFrom={}",
+                msg.keyId(), msg.signingAlgorithm(), consensusTimestamp, activeFrom);
     }
 
     private PublicKey buildEcPublicKey(String publicKeyBase64) {
