@@ -16,4 +16,7 @@ public record AuthorityKeyMessage(
     public boolean isAuthorityKeyPublished() {
         return "AUTHORITY_KEY_PUBLISHED_ON_BOOT".equals(eventType);
     }
+    public boolean isAuthorityKeyRotation() {
+        return "AUTHORITY_KEY_PUBLISHED_ON_ROTATION".equals(eventType);
+    }
 }
