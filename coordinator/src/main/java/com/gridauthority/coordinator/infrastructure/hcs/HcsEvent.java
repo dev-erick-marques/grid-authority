@@ -25,6 +25,7 @@ public record HcsEvent(
 
     public enum EventType {
         AUTHORITY_KEY_PUBLISHED_ON_BOOT,
+        AUTHORITY_KEY_PUBLISHED_ON_ROTATION,
         DECISION,
         SURGE
     }
