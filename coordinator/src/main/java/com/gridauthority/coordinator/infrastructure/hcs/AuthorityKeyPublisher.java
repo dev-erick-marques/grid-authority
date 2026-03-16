@@ -25,6 +25,14 @@ public class AuthorityKeyPublisher {
         publish(HcsEvent.EventType.AUTHORITY_KEY_PUBLISHED_ON_BOOT);
     }
 
+    public void publishIfRotated() {
+        if (!kmsSigningService.reloadPublicKey()) {
+            log.info("[HCS] No key change detected — skipping HCS publication.");
+            return;
+        }
+        publish(HcsEvent.EventType.AUTHORITY_KEY_PUBLISHED_ON_ROTATION);
+    }
+
     private void publish(HcsEvent.EventType eventType) {
         try {
             PublicKeyResponseDTO keyResponse = kmsSigningService.getPublicKeyResponse();
