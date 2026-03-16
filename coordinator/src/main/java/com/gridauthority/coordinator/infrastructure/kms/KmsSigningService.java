@@ -1,6 +1,5 @@
 package com.gridauthority.coordinator.infrastructure.kms;
 
-
 import com.gridauthority.coordinator.application.dto.PublicKeyResponseDTO;
 import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
 import com.gridauthority.coordinator.domain.exceptions.KmsPublicKeyNotLoadedException;
@@ -17,6 +16,8 @@ import software.amazon.awssdk.services.kms.model.GetPublicKeyRequest;
 import software.amazon.awssdk.services.kms.model.MessageType;
 import software.amazon.awssdk.services.kms.model.SignRequest;
 import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec;
+
+import java.util.Arrays;
 import java.util.Base64;
 
 @Slf4j
@@ -40,6 +41,23 @@ public class KmsSigningService {
                 kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());
     }
 
+    public boolean reloadPublicKey() {
+        if (!kmsProperties.isEnabled()) {
+            log.warn("[KMS] Disabled — reloadPublicKey is a no-op.");
+            return false;
+        }
+        byte[] freshDer = fetchPublicKeyDerFromKms();
+        if (Arrays.equals(freshDer, cachedPublicKeyDer)) {
+            log.info("[KMS] Public key unchanged — no rotation detected for keyId={}",
+                    kmsProperties.getKeyId());
+            return false;
+        }
+        cachedPublicKeyDer = freshDer;
+        log.info("[KMS] Public key rotated — cache updated keyId={} algorithm={}",
+                kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());
+        return true;
+    }
+
     private byte[] fetchPublicKeyDerFromKms() {
         try {
             return kmsClient.getPublicKey(
@@ -48,10 +66,10 @@ public class KmsSigningService {
                             .build()
             ).publicKey().asByteArray();
         } catch (Exception e) {
-            log.error("[KMS] Failed to load public key on startup — keyId={}: {}",
+            log.error("[KMS] Failed to load public key — keyId={}: {}",
                     kmsProperties.getKeyId(), e.getMessage());
             throw new KmsUnavailableException(
-                    "KMS public key unavailable on startup for keyId=" + kmsProperties.getKeyId(), e);
+                    "KMS public key unavailable for keyId=" + kmsProperties.getKeyId(), e);
         }
     }
 
@@ -75,7 +93,7 @@ public class KmsSigningService {
         );
     }
 
-    private String  signCanonical(CommandSigningContext context) {
+    private String signCanonical(CommandSigningContext context) {
         byte[] canonicalBytes = canonicalJsonMapper.writeCanonical(context);
         try {
             byte[] signatureBytes = kmsClient.sign(SignRequest.builder()
