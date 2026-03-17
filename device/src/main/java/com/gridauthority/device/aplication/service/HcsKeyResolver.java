@@ -19,9 +19,11 @@ import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -74,35 +76,36 @@ public class HcsKeyResolver {
 
     public PublicKey getResolvedPublicKey()  { return resolvedPublicKeyRef.get(); }
 
-
     public boolean isKeyActive() {
         if (resolvedPublicKeyRef.get() == null) return false;
         return Instant.now().compareTo(keyActiveFrom.get()) >= 0;
     }
 
-    public Instant getKeyActiveFrom() {
-        return keyActiveFrom.get();
-    }
+    public Instant getKeyActiveFrom() { return keyActiveFrom.get(); }
 
     private void resolveInitialKey() throws Exception {
-        TopicId topicId    = TopicId.fromString(hcsDeviceProperties.getPublicKeyTopicId());
-        int maxMessages    = hcsDeviceProperties.getMaxMessagesToScan();
-        List<BootEntry> collected = new ArrayList<>();
+        TopicId topicId = TopicId.fromString(hcsDeviceProperties.getPublicKeyTopicId());
+        int maxMessages = hcsDeviceProperties.getMaxMessagesToScan();
+
+        List<BootEntry> collected = new CopyOnWriteArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
 
         log.info("[HCS_DEVICE] Boot scan — publicKeyTopicId={} network={} maxMessages={}",
                 hcsDeviceProperties.getPublicKeyTopicId(),
                 hcsDeviceProperties.getNetwork(), maxMessages);
 
+        AtomicInteger totalSeen = new AtomicInteger(0);
+
         new TopicMessageQuery()
                 .setTopicId(topicId)
                 .setStartTime(Instant.EPOCH)
                 .subscribe(hederaClient,
-                        msg -> handleBootMessage(msg, collected, latch, maxMessages));
+                        message -> handleBootMessage(message, collected, latch, maxMessages, totalSeen));
 
         boolean completed = latch.await(10, TimeUnit.SECONDS);
         if (!completed) {
-            log.debug("[HCS_DEVICE] Boot scan window elapsed — {} messages collected", collected.size());
+            log.debug("[HCS_DEVICE] Boot scan window elapsed — {} total messages seen, {} authority key events collected",
+                    totalSeen.get(), collected.size());
         }
         applyLatestKey(collected);
     }
@@ -111,19 +114,21 @@ public class HcsKeyResolver {
 
     private void handleBootMessage(TopicMessage message,
                                    List<BootEntry> collected,
-                                   CountDownLatch latch, int maxMessages) {
+                                   CountDownLatch latch,
+                                   int maxMessages,
+                                   AtomicInteger totalSeen) {
+        int seen = totalSeen.incrementAndGet();
         try {
-            String json = new String(message.contents, StandardCharsets.UTF_8);
-            AuthorityKeyMessage msg = objectMapper.readValue(json, AuthorityKeyMessage.class);
-            if (msg.isAuthorityKeyPublished()) {
+            AuthorityKeyMessage msg = parseAuthorityKeyMessage(message);
+            if (msg != null && msg.isAuthorityKeyPublished()) {
                 collected.add(new BootEntry(msg, message));
                 log.debug("[HCS_DEVICE] Boot scan found {} — keyId={} consensusTimestamp={}",
                         msg.eventType(), msg.keyId(), message.consensusTimestamp);
             }
-            if (collected.size() >= maxMessages) latch.countDown();
         } catch (Exception e) {
             log.debug("[HCS_DEVICE] Boot scan skipping message: {}", e.getMessage());
         }
+        if (seen >= maxMessages) latch.countDown();
     }
 
     private void applyLatestKey(List<BootEntry> collected) {
@@ -151,13 +156,10 @@ public class HcsKeyResolver {
 
     private void handleLiveMessage(TopicMessage message) {
         try {
-            String json = new String(message.contents, StandardCharsets.UTF_8);
-            AuthorityKeyMessage msg = objectMapper.readValue(json, AuthorityKeyMessage.class);
+            AuthorityKeyMessage msg = parseAuthorityKeyMessage(message);
+            if (msg == null || !msg.isRotationKey()) return;
 
-            if (!msg.isRotationKey()) return;
-
-            Instant msgInstant = Instant.ofEpochMilli(msg.timestamp());
-            if (!msgInstant.isAfter(activeKeyTimestamp.get())) {
+            if (!message.consensusTimestamp.isAfter(activeKeyTimestamp.get())) {
                 log.debug("[HCS_DEVICE] Live message ignored — not newer than active key (keyId={})", msg.keyId());
                 return;
             }
@@ -170,17 +172,26 @@ public class HcsKeyResolver {
         }
     }
 
+    private AuthorityKeyMessage parseAuthorityKeyMessage(TopicMessage message) throws Exception {
+        String json = new String(message.contents, StandardCharsets.UTF_8);
+        var node = objectMapper.readTree(json);
+        var payloadNode = node.get("payload");
+        if (payloadNode == null || payloadNode.isNull()) return null;
+        return objectMapper.treeToValue(payloadNode, AuthorityKeyMessage.class);
+    }
+
     private void applyKey(AuthorityKeyMessage msg, Instant consensusTimestamp) {
         PublicKey publicKey = buildEcPublicKey(msg.publicKeyBase64());
 
-        Instant activeFrom = consensusTimestamp.plusMillis(hcsDeviceProperties.getKeyActivationGraceMs());
+        Instant activeFrom = consensusTimestamp.plusMillis(msg.activationWindowMs());
 
         resolvedPublicKeyRef.set(publicKey);
         activeKeyTimestamp.set(consensusTimestamp);
         keyActiveFrom.set(activeFrom);
 
-        log.info("[HCS_DEVICE] Public key applied — keyId={} algorithm={} consensusTimestamp={} activeFrom={}",
-                msg.keyId(), msg.signingAlgorithm(), consensusTimestamp, activeFrom);
+        log.info("[HCS_DEVICE] Public key applied — keyId={} algorithm={} consensusTimestamp={} activationWindowMs={} activeFrom={}",
+                msg.keyId(), msg.signingAlgorithm(), consensusTimestamp,
+                msg.activationWindowMs(), activeFrom);
     }
 
     private PublicKey buildEcPublicKey(String publicKeyBase64) {
