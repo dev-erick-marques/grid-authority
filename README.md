@@ -125,6 +125,8 @@ The payloadHash is always the SHA-256 of the canonical JSON signed by KMS. Exter
 hash matches the signature without needing access to the system itself. The exact fields carried in each event may evolve 
 over time as the system expands, but the anchoring and verification model remains consistent.
 
+> The transport and broker layers have known shortcuts made for hackathon scope.
+See [Security Considerations](./docs/security-considerations.md) for details and production fixes
 ---
 
 
