@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -44,23 +45,16 @@ public class HcsKeyResolver {
 
     @PostConstruct
     public void resolveOnStartup() {
-        if (!hcsDeviceProperties.isEnabled()) {
-            log.warn("[HCS_DEVICE] Disabled — public key will NOT be resolved from HCS. " +
-                    "Set hcs.enabled=true in production.");
-            return;
-        }
-        if (isTopicUnconfigured()) {
-            log.error("[HCS_DEVICE] hcs.public-key-topic-id not set — " +
-                    "cannot resolve coordinator public key.");
-            return;
-        }
+        Assert.hasText(hcsDeviceProperties.getPublicKeyTopicId(),
+                "[HCS_DEVICE] hcs.public-key-topic-id must be set — cannot resolve coordinator public key.");
         try {
             hederaClient = buildClient();
             resolveInitialKey();
             startPersistentWatch();
         } catch (Exception e) {
-            log.error("[HCS_DEVICE] Failed to resolve public key from topic={}: {}",
-                    hcsDeviceProperties.getPublicKeyTopicId(), e.getMessage());
+            throw new IllegalStateException(
+                    "[HCS_DEVICE] Failed to resolve public key from topic=" +
+                            hcsDeviceProperties.getPublicKeyTopicId() + ": " + e.getMessage(), e);
         }
     }
 
@@ -200,11 +194,6 @@ public class HcsKeyResolver {
             throw new InvalidPublicKeyFormatException(
                     "Invalid EC DER key from HCS: " + e.getMessage(), e);
         }
-    }
-
-    private boolean isTopicUnconfigured() {
-        String id = hcsDeviceProperties.getPublicKeyTopicId();
-        return id == null || id.isBlank();
     }
 
     private Client buildClient() {

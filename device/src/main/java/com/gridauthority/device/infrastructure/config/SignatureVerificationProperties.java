@@ -11,6 +11,5 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "command.verification")
 public class SignatureVerificationProperties {
 
-    private boolean enabled = false;
     private long timestampToleranceMs = 30_000;
 }

@@ -1,25 +1,16 @@
 package com.gridauthority.device.aplication.service;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.gridauthority.device.domain.exception.CoordinatorPublicKeyUnavailableException;
-import com.gridauthority.device.domain.exception.InvalidPublicKeyFormatException;
 import com.gridauthority.device.domain.exception.SignatureVerificationException;
-import com.gridauthority.device.infrastructure.config.CoordinatorProperties;
 import com.gridauthority.device.infrastructure.config.SignatureVerificationProperties;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
-
 
 @Slf4j
 @Service
@@ -30,17 +21,12 @@ public class CommandVerificationService {
     private final SignatureVerificationProperties verificationProperties;
 
     public void verify(String signatureBase64, String canonicalJson, long issuedAt) {
-        if (verificationDisabled()) {
-            log.warn("[VERIFY] Signature verification DISABLED — accepting all commands.");
-            return;
-        }
-
         PublicKey publicKey = hcsKeyResolver.getResolvedPublicKey();
 
         if (publicKey == null) {
             throw new SignatureVerificationException(
                     "Public key not resolved from HCS — cannot verify command. " +
-                            "Check hcs.enabled and hcs.public-key-topic-id.");
+                            "Check hcs.public-key-topic-id.");
         }
 
         if (!timestampValid(issuedAt)) {
@@ -49,10 +35,6 @@ public class CommandVerificationService {
         }
 
         verifySignature(signatureBase64, canonicalJson, publicKey);
-    }
-
-    private boolean verificationDisabled() {
-        return !verificationProperties.isEnabled();
     }
 
     private boolean timestampValid(long issuedAt) {
