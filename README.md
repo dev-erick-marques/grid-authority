@@ -54,6 +54,32 @@ No core changes required — command type is a payload field.
 This extension relies on reliable device liveness detection (see Phi Accrual below) to confirm the target before switching..
  
 ---
+## Latency & Execution Model
+
+GridAuthority implements a hybrid architecture to balance industrial safety (speed) with governance (transparency):
+
+Real-Time Execution (Fire-and-Forget): Critical commands (SHUTDOWN) are executed by the device in milliseconds
+upon receipt. The device validates the KMS signature locally. It does not wait for Hedera consensus to act,
+ensuring equipment is protected before damage occurs.
+
+Asynchronous Anchoring: While the device acts immediately, the Coordinator sends the event to Hedera HCS in parallel.
+This creates a permanent, non-repudiable audit trail of why and when the device was shut down.
+
+Consensus-Locked Rotation: Unlike shutdown commands, Key Rotations are governed by Hedera's consensus timestamp.
+Devices only transition to a new key after the consensus window is reached, preventing "split-brain" scenarios caused
+by local clock drift.
+
+## Key Management & Rotation
+
+The project implements a secure KMS key rotation mechanism integrated with the Hedera Consensus Service (HCS). This ensures that all devices in the grid synchronize state and cryptographic keys without relying on local clocks.
+
+### Rotation Protocol Highlights:
+- **Alias-based Rotation**: Seamless transition by reassigning KMS aliases.
+- **Consensus-based Activation**: Uses Hedera's network consensus timestamp to prevent issues with clock drift.
+- **Grace Period**: Implementation of an `activateWindow` (e.g., 10,000ms) to ensure all devices receive the update before the old key is decommissioned.
+- **Flow Control**: The Coordinator pauses command emissions during the rotation window (`now + timestamp * 1.1`).
+
+[Detailed Rotation Specification](./docs/key-rotation.md)
 
 ## The Three Pillars
 
@@ -70,21 +96,17 @@ locally using `java.security` before accepting any state change.
   expected key, not just any key
 - A command without a valid signature is rejected at the device boundary with `403 Forbidden`
 
-### 2. Hedera HCS — Identity Anchoring
 
-On coordinator startup, `AuthorityKeyPublisher` calls KMS `GetPublicKey`, then publishes an
-`AUTHORITY_KEY_PUBLISHED` event to a dedicated HCS topic containing the DER-encoded EC public
-key and its SHA-256 fingerprint.
+### 2. Hedera HCS — Dynamic Identity & Rotation
 
-On device startup, `HcsKeyResolver` reads that topic via the Hedera mirror node — a public,
-credential-free read path — and caches the resolved public key.
+Identity Anchoring: On startup, the AuthorityKeyPublisher fetches the public key from
+KMS and publishes an  event to HCS. The device's trust anchor is the immutable ledger, 
+not a vulnerable HTTP endpoint.
 
-**The device's trust anchor is the ledger itself, not an HTTP endpoint controlled by the
-coordinator.** An attacker who compromises the coordinator process cannot retroactively alter
-what was anchored on HCS, and cannot prevent the device from reading the ledger directly.
+Seamless Transition: Key rotation is handled dynamically. The new public key metadata
+is broadcasted via HCS, and devices update their local cache based on the consensus window,
+requiring no manual restarts or firmware updates.
 
-Key rotation requires a coordinator restart: the new public key is published to HCS, and
-every device picks it up on its next restart. No firmware updates. No pre-shared secrets.
 
 ### 3. Hedera HCS — Auditability
 
