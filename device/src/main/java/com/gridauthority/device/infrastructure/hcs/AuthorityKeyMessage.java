@@ -11,6 +11,7 @@ public record AuthorityKeyMessage(
         @JsonProperty("signingAlgorithm") String signingAlgorithm,
         @JsonProperty("publicKeyBase64") String publicKeyBase64,
         @JsonProperty("payloadHash") String payloadHash,
+        @JsonProperty("activationWindowMs") long activationWindowMs,
         @JsonProperty("timestamp") long timestamp
 ) {
 
