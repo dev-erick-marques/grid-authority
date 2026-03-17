@@ -19,5 +19,7 @@ public record HcsPayload(
     @JsonProperty("signingAlgorithm") String signingAlgorithm,
     @JsonProperty("publicKeyBase64") String publicKeyBase64,
     @JsonProperty("signatureBase64") String signatureBase64,
-    @JsonProperty("timestamp") long timestamp
+    @JsonProperty("timestamp") long timestamp,
+
+    @JsonProperty("activationWindowMs") long activationWindowMs
 ) {}

@@ -18,5 +18,6 @@ public class HcsProperties {
     private String decisionTopicId;
     private String surgeTopicId;
     private String publicKeyTopicId;
+    private long activationWindowMs = 0;
 
 }
