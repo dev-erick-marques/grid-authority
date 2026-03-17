@@ -51,26 +51,26 @@ public class HcsAnchorService {
     }
 
     public void anchorAuthorityKey(HcsEvent event) {
-        publish(hcsProperties.getPublicKeyTopicId(), event,
-        HcsEvent.EventType.AUTHORITY_KEY_PUBLISHED_ON_BOOT.name());
+        publish(hcsProperties.getPublicKeyTopicId(), event);
     }
 
     public void anchorDecision(HcsEvent event) {
-        publish(hcsProperties.getDecisionTopicId(), event, "DECISION");
+        publish(hcsProperties.getDecisionTopicId(), event);
     }
 
     public void anchorSurge(HcsEvent event) {
-        publish(hcsProperties.getSurgeTopicId(), event, "SURGE");
+        publish(hcsProperties.getSurgeTopicId(), event);
     }
 
-    private void publish(String topicIdStr, HcsEvent event, String label) {
+    private void publish(String topicIdStr, HcsEvent event) {
+        String eventType = event.payload().eventType();
         if (!hcsProperties.isEnabled()) return;
         if (hederaClient == null) {
-            log.error("[HCS] Cannot anchor {} — client not initialized", label);
+            log.error("[HCS] Cannot anchor {} — client not initialized", event.payload().eventType());
             return;
         }
         if (topicIdStr == null || topicIdStr.isBlank()) {
-            log.error("[HCS] Cannot anchor {} — topicId not configured", label);
+            log.error("[HCS] Cannot anchor {} — topicId not configured", eventType);
             return;
         }
         try {
@@ -82,20 +82,20 @@ public class HcsAnchorService {
                     .setMessage(payload.getBytes(StandardCharsets.UTF_8))
                     .executeAsync(hederaClient)
                     .thenRun(() -> {
-                        log.info("[HCS] Anchored eventType={} topicId={} device={} payloadHash={}",
-                            label, topicIdStr, event.payload().deviceId(), event.sha256());
+                        log.info("[HCS] Anchored eventType={} topicId={} payloadHash={}",
+                            eventType, topicIdStr, event.sha256());
                         auditEventPublisher.publish(AuditLogEntry.fromHcsEvent(event, "HCS_ANCHORED", topicIdStr));
 
                     })
                     .exceptionally(e -> {
                         log.error("[HCS] Failed to anchor eventType={} topicId={} — {}",
-                                label, topicIdStr, e.getMessage());
+                                eventType, topicIdStr, e.getMessage());
                         auditEventPublisher.publish(AuditLogEntry.fromHcsEvent(event, "HCS_ERROR", topicIdStr));
                         return null;
                     });
 
         } catch (Exception e) {
-            log.error("[HCS] Failed to serialize HCS event eventType={} — {}", label, e.getMessage());
+            log.error("[HCS] Failed to serialize HCS event eventType={} — {}", eventType, e.getMessage());
         }
     }
 
