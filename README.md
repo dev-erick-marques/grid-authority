@@ -28,7 +28,7 @@ infrastructure itself. Human reaction time is not fast enough, and rule-based sc
 trustworthy enough.
 
 GridAuthority is an **autonomous control authority** that monitors device voltage in real time,
-computes statistical stability continuously, and acts without human intervention:
+computes **[statistical stability](./docs/metrics.md)** continuously, and acts without human intervention:
 
 - When CV exceeds 10%, it issues a `SHUTDOWN` command immediately
 - After a configurable number of consecutive stable cycles, it issues a `RESTART`
