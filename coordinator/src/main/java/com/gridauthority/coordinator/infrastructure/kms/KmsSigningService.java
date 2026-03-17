@@ -32,20 +32,12 @@ public class KmsSigningService {
 
     @PostConstruct
     public void loadPublicKey() {
-        if (!kmsProperties.isEnabled()) {
-            log.warn("[KMS] Disabled — commands will NOT be signed. Set kms.enabled=true in production.");
-            return;
-        }
         cachedPublicKeyDer = fetchPublicKeyDerFromKms();
         log.info("[KMS] Public key loaded keyId={} algorithm={}",
                 kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());
     }
 
     public boolean reloadPublicKey() {
-        if (!kmsProperties.isEnabled()) {
-            log.warn("[KMS] Disabled — reloadPublicKey is a no-op.");
-            return false;
-        }
         byte[] freshDer = fetchPublicKeyDerFromKms();
         if (Arrays.equals(freshDer, cachedPublicKeyDer)) {
             log.debug("[KMS] Public key unchanged keyId={}", kmsProperties.getKeyId());
@@ -76,13 +68,10 @@ public class KmsSigningService {
         long issuedAt = System.currentTimeMillis();
         CommandSigningContext context = new CommandSigningContext(action, deviceId, issuedAt);
         String canonicalJson = canonicalJsonMapper.writeCanonicalAsString(context);
-
-        if (!kmsProperties.isEnabled()) {
-            return buildUnsignedPayload(deviceId, action, issuedAt, canonicalJson);
-        }
-
         String signatureBase64 = signCanonical(context);
-        log.debug("[KMS] Signed action={} device={} keyId={}", action, deviceId, shortKeyId(kmsProperties.getKeyId()));
+
+        log.debug("[KMS] Signed action={} device={} keyId={}",
+                action, deviceId, shortKeyId(kmsProperties.getKeyId()));
 
         return new SignedCommandPayload(
                 deviceId, action, issuedAt,
@@ -110,19 +99,10 @@ public class KmsSigningService {
         }
     }
 
-    private SignedCommandPayload buildUnsignedPayload(
-            String deviceId, String action, long issuedAt, String canonicalJson) {
-        return new SignedCommandPayload(
-                deviceId, action, issuedAt,
-                "LOCAL_DEV", kmsProperties.getSigningAlgorithm(),
-                "NO_SIGNATURE", canonicalJson
-        );
-    }
-
     public PublicKeyResponseDTO getPublicKeyResponse() {
         if (cachedPublicKeyDer == null) {
             throw new KmsPublicKeyNotLoadedException(
-                    "KMS public key not loaded — either kms.enabled=false or startup failed");
+                    "KMS public key not loaded — startup failed");
         }
         return new PublicKeyResponseDTO(
                 kmsProperties.getKeyId(),

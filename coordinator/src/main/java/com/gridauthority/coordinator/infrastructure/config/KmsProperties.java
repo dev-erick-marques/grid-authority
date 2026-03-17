@@ -16,13 +16,12 @@ public class KmsProperties {
     private String keyId;
     private String region = "us-east-1";
     private String signingAlgorithm = "ECDSA_SHA_256";
-    private boolean enabled = true;
 
     @PostConstruct
     public void validate() {
-        if (enabled && (keyId == null || keyId.isBlank())) {
+        if (keyId == null || keyId.isBlank()) {
             throw new KmsConfigurationException(
-                    "[KmsProperties] kms.key-id must be set when kms.enabled=true. " +
+                    "[KmsProperties] kms.key-id must be set. " +
                             "Set KMS_KEY_ID environment variable."
             );
         }

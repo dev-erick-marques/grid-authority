@@ -26,16 +26,13 @@ public class HcsAnchorService {
 
     @PostConstruct
     public void init() {
-        if (!hcsProperties.isEnabled()) {
-            log.info("[HCS] Disabled — anchoring skipped (set hcs.enabled=true for production)");
-            return;
-        }
         try {
             hederaClient = buildClient();
             log.info("[HCS] Client initialized — network={} operator={}",
                     hcsProperties.getNetwork(), hcsProperties.getAccountId());
         } catch (Exception e) {
-            log.error("[HCS] Failed to initialize Hedera client: {}", e.getMessage());
+            throw new IllegalStateException(
+                    "[HCS] Failed to initialize Hedera client: " + e.getMessage(), e);
         }
     }
 
@@ -63,11 +60,6 @@ public class HcsAnchorService {
 
     private void publish(String topicIdStr, HcsEvent event) {
         String eventType = event.payload().eventType();
-        if (!hcsProperties.isEnabled()) return;
-        if (hederaClient == null) {
-            log.error("[HCS] Cannot anchor {} — client not initialized", event.payload().eventType());
-            return;
-        }
         if (topicIdStr == null || topicIdStr.isBlank()) {
             log.error("[HCS] Cannot anchor {} — topicId not configured", eventType);
             return;

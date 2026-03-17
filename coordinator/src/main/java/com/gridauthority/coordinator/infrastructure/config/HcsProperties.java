@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "hcs")
 public class HcsProperties {
 
-    private boolean enabled = false;
     private String network = "testnet";
     private String accountId;
     private String privateKey;
@@ -19,5 +18,4 @@ public class HcsProperties {
     private String surgeTopicId;
     private String publicKeyTopicId;
     private long activationWindowMs = 0;
-
 }

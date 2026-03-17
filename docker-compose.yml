@@ -31,7 +31,6 @@ services:
       VOLTAGE_REPOSITORY_WINDOW_SIZE: 10
       METRICS_HISTORY_SIZE: 20
       POLICY_STABLE_CYCLES_REQUIRED: 60
-      HCS_ENABLED: true
       TRANSPORT_MODE: mqtt
     networks:
       - gridnet
