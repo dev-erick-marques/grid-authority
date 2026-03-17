@@ -27,8 +27,7 @@ public class HcsAnchorService {
     @PostConstruct
     public void init() {
         if (!hcsProperties.isEnabled()) {
-            log.warn("[HCS] Disabled — events will NOT be anchored. " +
-                    "Set hcs.enabled=true in production.");
+            log.info("[HCS] Disabled — anchoring skipped (set hcs.enabled=true for production)");
             return;
         }
         try {
@@ -82,10 +81,9 @@ public class HcsAnchorService {
                     .setMessage(payload.getBytes(StandardCharsets.UTF_8))
                     .executeAsync(hederaClient)
                     .thenRun(() -> {
-                        log.info("[HCS] Anchored eventType={} topicId={} payloadHash={}",
-                            eventType, topicIdStr, event.sha256());
+                        log.info("[HCS] Anchored eventType={} topicId={} hash={}",
+                                eventType, topicIdStr, shortHash(event.sha256()));
                         auditEventPublisher.publish(AuditLogEntry.fromHcsEvent(event, "HCS_ANCHORED", topicIdStr));
-
                     })
                     .exceptionally(e -> {
                         log.error("[HCS] Failed to anchor eventType={} topicId={} — {}",
@@ -97,6 +95,10 @@ public class HcsAnchorService {
         } catch (Exception e) {
             log.error("[HCS] Failed to serialize HCS event eventType={} — {}", eventType, e.getMessage());
         }
+    }
+
+    private static String shortHash(String hash) {
+        return hash != null && hash.length() > 12 ? hash.substring(0, 12) : hash;
     }
 
     private Client buildClient() {

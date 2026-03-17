@@ -37,7 +37,7 @@ public class KmsSigningService {
             return;
         }
         cachedPublicKeyDer = fetchPublicKeyDerFromKms();
-        log.info("[KMS] Public key loaded — keyId={} algorithm={}",
+        log.info("[KMS] Public key loaded keyId={} algorithm={}",
                 kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());
     }
 
@@ -48,12 +48,11 @@ public class KmsSigningService {
         }
         byte[] freshDer = fetchPublicKeyDerFromKms();
         if (Arrays.equals(freshDer, cachedPublicKeyDer)) {
-            log.info("[KMS] Public key unchanged — no rotation detected for keyId={}",
-                    kmsProperties.getKeyId());
+            log.debug("[KMS] Public key unchanged keyId={}", kmsProperties.getKeyId());
             return false;
         }
         cachedPublicKeyDer = freshDer;
-        log.info("[KMS] Public key rotated — cache updated keyId={} algorithm={}",
+        log.info("[KMS] Public key rotated keyId={} algorithm={}",
                 kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());
         return true;
     }
@@ -66,7 +65,7 @@ public class KmsSigningService {
                             .build()
             ).publicKey().asByteArray();
         } catch (Exception e) {
-            log.error("[KMS] Failed to load public key — keyId={}: {}",
+            log.error("[KMS] Failed to load public key keyId={}: {}",
                     kmsProperties.getKeyId(), e.getMessage());
             throw new KmsUnavailableException(
                     "KMS public key unavailable for keyId=" + kmsProperties.getKeyId(), e);
@@ -83,8 +82,7 @@ public class KmsSigningService {
         }
 
         String signatureBase64 = signCanonical(context);
-        log.info("[KMS] Signed action={} device={} keyId={} canonical={}",
-                action, deviceId, kmsProperties.getKeyId(), canonicalJson);
+        log.debug("[KMS] Signed action={} device={} keyId={}", action, deviceId, shortKeyId(kmsProperties.getKeyId()));
 
         return new SignedCommandPayload(
                 deviceId, action, issuedAt,
@@ -131,5 +129,15 @@ public class KmsSigningService {
                 kmsProperties.getSigningAlgorithm(),
                 Base64.getEncoder().encodeToString(cachedPublicKeyDer)
         );
+    }
+
+    public String getKeyId() {
+        return kmsProperties.getKeyId();
+    }
+
+    private static String shortKeyId(String keyId) {
+        if (keyId == null) return "none";
+        int slash = keyId.lastIndexOf('/');
+        return slash >= 0 ? keyId.substring(slash + 1) : keyId;
     }
 }

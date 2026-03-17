@@ -29,12 +29,17 @@ public class MqttCommandPublisher implements CommandTransport {
             msg.setQos(mqttProperties.getQos());
             msg.setRetained(false);
             mqttClient.publish(topic, msg);
-            log.info("[MQTT] {} → device={} topic={} (signed keyId={})",
-                    command, deviceId, topic, payload.keyId());
+            log.info("[MQTT] {} → device={} key={}", command, deviceId, shortKeyId(payload.keyId()));
         } catch (MqttException e) {
             throw new RuntimeException("MQTT publish failed for command " + command, e);
         } catch (Exception e) {
             throw new RuntimeException("Serialization failed for command " + command, e);
         }
+    }
+
+    private static String shortKeyId(String keyId) {
+        if (keyId == null) return "none";
+        int slash = keyId.lastIndexOf('/');
+        return slash >= 0 ? keyId.substring(slash + 1) : keyId;
     }
 }

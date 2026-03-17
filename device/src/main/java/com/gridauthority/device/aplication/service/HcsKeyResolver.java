@@ -90,7 +90,7 @@ public class HcsKeyResolver {
         List<BootEntry> collected = new CopyOnWriteArrayList<>();
         CountDownLatch latch = new CountDownLatch(1);
 
-        log.info("[HCS_DEVICE] Boot scan — publicKeyTopicId={} network={} maxMessages={}",
+        log.info("[HCS_DEVICE] Boot scan started topicId={} network={} maxMessages={}",
                 hcsDeviceProperties.getPublicKeyTopicId(),
                 hcsDeviceProperties.getNetwork(), maxMessages);
 
@@ -104,7 +104,7 @@ public class HcsKeyResolver {
 
         boolean completed = latch.await(10, TimeUnit.SECONDS);
         if (!completed) {
-            log.debug("[HCS_DEVICE] Boot scan window elapsed — {} total messages seen, {} authority key events collected",
+            log.debug("[HCS_DEVICE] Boot scan complete — messages={} authorityKeyEvents={}",
                     totalSeen.get(), collected.size());
         }
         applyLatestKey(collected);
@@ -122,7 +122,7 @@ public class HcsKeyResolver {
             AuthorityKeyMessage msg = parseAuthorityKeyMessage(message);
             if (msg != null && msg.isAuthorityKeyPublished()) {
                 collected.add(new BootEntry(msg, message));
-                log.debug("[HCS_DEVICE] Boot scan found {} — keyId={} consensusTimestamp={}",
+                log.debug("[HCS_DEVICE] Boot scan found {} keyId={} consensusTimestamp={}",
                         msg.eventType(), msg.keyId(), message.consensusTimestamp);
             }
         } catch (Exception e) {
@@ -145,7 +145,7 @@ public class HcsKeyResolver {
         TopicId topicId   = TopicId.fromString(hcsDeviceProperties.getPublicKeyTopicId());
         Instant startFrom = activeKeyTimestamp.get().plusMillis(1);
 
-        log.info("[HCS_DEVICE] Starting persistent watch — publicKeyTopicId={} startFrom={}",
+        log.info("[HCS_DEVICE] Persistent watch started topicId={} startFrom={}",
                 hcsDeviceProperties.getPublicKeyTopicId(), startFrom);
 
         new TopicMessageQuery()
@@ -160,11 +160,11 @@ public class HcsKeyResolver {
             if (msg == null || !msg.isRotationKey()) return;
 
             if (!message.consensusTimestamp.isAfter(activeKeyTimestamp.get())) {
-                log.debug("[HCS_DEVICE] Live message ignored — not newer than active key (keyId={})", msg.keyId());
+                log.debug("[HCS_DEVICE] Live message ignored — not newer than active key keyId={}", msg.keyId());
                 return;
             }
 
-            log.info("[HCS_DEVICE] Key rotation detected on HCS — applying new keyId={}", msg.keyId());
+            log.info("[HCS_DEVICE] Key rotation detected — applying keyId={}", msg.keyId());
             applyKey(msg, message.consensusTimestamp);
 
         } catch (Exception e) {
@@ -182,16 +182,13 @@ public class HcsKeyResolver {
 
     private void applyKey(AuthorityKeyMessage msg, Instant consensusTimestamp) {
         PublicKey publicKey = buildEcPublicKey(msg.publicKeyBase64());
-
         Instant activeFrom = consensusTimestamp.plusMillis(msg.activationWindowMs());
 
         resolvedPublicKeyRef.set(publicKey);
         activeKeyTimestamp.set(consensusTimestamp);
         keyActiveFrom.set(activeFrom);
 
-        log.info("[HCS_DEVICE] Public key applied — keyId={} algorithm={} consensusTimestamp={} activationWindowMs={} activeFrom={}",
-                msg.keyId(), msg.signingAlgorithm(), consensusTimestamp,
-                msg.activationWindowMs(), activeFrom);
+        log.info("[HCS_DEVICE] Public key applied keyId={} activeFrom={}", msg.keyId(), activeFrom);
     }
 
     private PublicKey buildEcPublicKey(String publicKeyBase64) {

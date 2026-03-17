@@ -27,18 +27,16 @@ public class SurgeModeService {
     public void forceSurge() {
         cancelCycle();
         activateSurge();
-        log.warn("[SURGE] Surge forced manually");
     }
 
     public void forceNormal() {
         cancelCycle();
         deactivateSurge();
-        log.info("[SURGE] Return to normal state forced manually");
     }
 
     public void startAutoCycle() {
         cancelCycle();
-        log.info("[SURGE] Automatic cycle started — duration={}ms interval={}ms",
+        log.info("[SURGE] Auto-cycle started — duration={}ms interval={}ms",
                 properties.getSurge().getDurationMs(),
                 properties.getSurge().getIntervalMs());
         scheduleNextSurge();
@@ -47,7 +45,7 @@ public class SurgeModeService {
     public void stopAutoCycle() {
         cancelCycle();
         deactivateSurge();
-        log.info("[SURGE] Automatic cycle stopped");
+        log.info("[SURGE] Auto-cycle stopped");
     }
 
     private void scheduleNextSurge() {
@@ -68,12 +66,12 @@ public class SurgeModeService {
 
     private void activateSurge() {
         surgeActive.set(true);
-        log.warn("[SURGE] ACTIVE — unstable voltage for {}ms", properties.getSurge().getDurationMs());
+        log.warn("[SURGE] ACTIVE — unstable voltage");
     }
 
     private void deactivateSurge() {
         surgeActive.set(false);
-        log.info("[SURGE] INACTIVE — voltage back to normal");
+        log.info("[SURGE] INACTIVE — voltage stabilised");
     }
 
     private void cancelCycle() {

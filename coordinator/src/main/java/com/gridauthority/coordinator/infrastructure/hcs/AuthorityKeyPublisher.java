@@ -34,12 +34,11 @@ public class AuthorityKeyPublisher {
 
     public void publishIfRotated() {
         if (!kmsSigningService.reloadPublicKey()) {
-            log.info("[HCS] No key change detected — skipping HCS publication.");
+            log.debug("[HCS] Key unchanged — skipping HCS publication");
             return;
         }
         publish(HcsEvent.EventType.AUTHORITY_KEY_PUBLISHED_ON_ROTATION);
     }
-
 
     public boolean isKeyActive() {
         return Instant.now().isAfter(commandsAllowedAfter.get());
@@ -70,13 +69,23 @@ public class AuthorityKeyPublisher {
             long coordinatorWindowMs = (long) (windowMs * COORDINATOR_WINDOW_MULTIPLIER);
             commandsAllowedAfter.set(Instant.ofEpochMilli(now + coordinatorWindowMs));
 
-            log.info("[HCS] {} — keyId={} activationWindowMs={} commandsAllowedAfter={} sha256={}",
-                    eventType.name(), keyResponse.keyId(),
-                    windowMs, commandsAllowedAfter.get(), event.sha256());
+            log.info("[HCS] {} keyId={} commandsAllowedAfter={} hash={}",
+                    eventType.name(), shortKeyId(keyResponse.keyId()),
+                    commandsAllowedAfter.get(), shortHash(event.sha256()));
 
         } catch (Exception e) {
             log.error("[HCS] Failed to publish authority key eventType={}: {}",
                     eventType.name(), e.getMessage());
         }
+    }
+
+    private static String shortKeyId(String keyId) {
+        if (keyId == null) return "none";
+        int slash = keyId.lastIndexOf('/');
+        return slash >= 0 ? keyId.substring(slash + 1) : keyId;
+    }
+
+    private static String shortHash(String hash) {
+        return hash != null && hash.length() > 12 ? hash.substring(0, 12) : hash;
     }
 }

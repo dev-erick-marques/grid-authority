@@ -28,12 +28,17 @@ public class MqttSurgePublisher implements SurgeTransport {
             msg.setQos(mqttProperties.getQos());
             msg.setRetained(false);
             mqttClient.publish(topic, msg);
-            log.info("[MQTT-SURGE] {} → device={} topic={} (signed keyId={})",
-                    action, deviceId, topic, payload.keyId());
+            log.info("[MQTT-SURGE] {} → device={} key={}", action, deviceId, shortKeyId(payload.keyId()));
         } catch (MqttException e) {
             throw new RuntimeException("MQTT surge publish failed for action " + action, e);
         } catch (Exception e) {
             throw new RuntimeException("Serialization failed for surge action " + action, e);
         }
+    }
+
+    private static String shortKeyId(String keyId) {
+        if (keyId == null) return "none";
+        int slash = keyId.lastIndexOf('/');
+        return slash >= 0 ? keyId.substring(slash + 1) : keyId;
     }
 }

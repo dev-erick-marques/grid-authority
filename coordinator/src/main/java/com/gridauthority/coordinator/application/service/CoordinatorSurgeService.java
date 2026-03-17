@@ -61,14 +61,14 @@ public class CoordinatorSurgeService {
             try {
                 surgeTransport.send(baseUrl, deviceId, action, signed);
                 surgeStateRepository.set(deviceId, nextState);
-                log.info("[SURGE] {} → device={} state={}", action, deviceId, nextState);
                 anchorSurge(deviceId, action, signed);
+
             } catch (RestClientException e) {
-                log.error("[SURGE] {} failed → device={} — {}", action, deviceId, e.getMessage());
+                log.error("[SURGE] {} failed device={} — {}", action, deviceId, e.getMessage());
                 throw e;
             }
         }, () -> {
-            log.warn("[SURGE] {} → device={} not registered", action, deviceId);
+            log.warn("[SURGE] {} device={} not registered", action, deviceId);
             throw new IllegalStateException("Device not registered: " + deviceId);
         });
     }

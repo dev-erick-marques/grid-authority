@@ -2,7 +2,6 @@ package com.gridauthority.device.aplication.service;
 
 import com.gridauthority.device.domain.exception.DeviceAlreadyActiveException;
 import com.gridauthority.device.domain.exception.DeviceAlreadyShutdownException;
-
 import com.gridauthority.device.domain.model.DeviceState;
 import com.gridauthority.device.infrastructure.config.DeviceSimulationProperties;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,7 @@ public class DeviceStateService {
             throw new DeviceAlreadyShutdownException(properties.getId());
         }
         state.set(DeviceState.SHUTDOWN);
-        log.warn("[{}] state changed to SHUTDOWN", properties.getId());
+        log.warn("[DEVICE] {} → SHUTDOWN", properties.getId());
         return state.get();
     }
 
@@ -37,7 +36,7 @@ public class DeviceStateService {
             throw new DeviceAlreadyActiveException(properties.getId());
         }
         state.set(DeviceState.ACTIVE);
-        log.info("[{}] state changed to ACTIVE", properties.getId());
+        log.info("[DEVICE] {} → ACTIVE", properties.getId());
         return state.get();
     }
 }

@@ -30,10 +30,8 @@ public class MqttCommandSubscriber {
     @PostConstruct
     public void subscribe() throws MqttException {
         String deviceId = simulationProperties.getId();
-
         subscribeCommands(deviceId);
         subscribeSurge(deviceId);
-
         log.info("[MQTT] Device {} subscribed to command and surge topics", deviceId);
     }
 
@@ -43,21 +41,18 @@ public class MqttCommandSubscriber {
             try {
                 SignedCommandDTO signed = objectMapper.readValue(
                         message.getPayload(), SignedCommandDTO.class);
-
                 verificationService.verify(
                         signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt());
-
                 DeviceCommand command = DeviceCommand.valueOf(signed.action());
-                log.info("[MQTT] Verified {} for device={}", command, deviceId);
-
                 switch (command) {
                     case SHUTDOWN -> deviceStateService.shutdown();
                     case RESTART  -> deviceStateService.restart();
                 }
+
             } catch (IllegalArgumentException e) {
-                log.error("[MQTT] Unknown command in message from topic={} — {}", t, e.getMessage());
+                log.error("[MQTT] Unknown command topic={} — {}", t, e.getMessage());
             } catch (Exception e) {
-                log.error("[MQTT] Failed to process command from topic={} — {}", t, e.getMessage());
+                log.error("[MQTT] Failed to process command topic={} — {}", t, e.getMessage());
             }
         });
     }
@@ -68,13 +63,9 @@ public class MqttCommandSubscriber {
             try {
                 SignedCommandDTO signed = objectMapper.readValue(
                         message.getPayload(), SignedCommandDTO.class);
-
                 verificationService.verify(
                         signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt());
-
                 SurgeAction surgeAction = SurgeAction.valueOf(signed.action());
-                log.info("[MQTT-SURGE] Verified {} for device={}", surgeAction, deviceId);
-
                 switch (surgeAction) {
                     case SURGE_START       -> surgeModeService.forceSurge();
                     case SURGE_STOP        -> surgeModeService.forceNormal();
@@ -82,9 +73,9 @@ public class MqttCommandSubscriber {
                     case SURGE_CYCLE_STOP  -> surgeModeService.stopAutoCycle();
                 }
             } catch (IllegalArgumentException e) {
-                log.error("[MQTT-SURGE] Unknown action from topic={} — {}", t, e.getMessage());
+                log.error("[MQTT-SURGE] Unknown action topic={} — {}", t, e.getMessage());
             } catch (Exception e) {
-                log.error("[MQTT-SURGE] Failed to process surge from topic={} — {}", t, e.getMessage());
+                log.error("[MQTT-SURGE] Failed to process surge topic={} — {}", t, e.getMessage());
             }
         });
     }
