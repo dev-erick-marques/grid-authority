@@ -6,6 +6,7 @@ import com.gridauthority.coordinator.domain.model.DeviceCommand;
 import com.gridauthority.coordinator.domain.model.DeviceState;
 import com.gridauthority.coordinator.infrastructure.audit.AuditEventPublisher;
 import com.gridauthority.coordinator.infrastructure.audit.AuditLogEntry;
+import com.gridauthority.coordinator.infrastructure.hcs.AuthorityKeyPublisher;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
@@ -28,6 +29,7 @@ public class DeviceCommandService {
     private final HcsAnchorService hcsAnchorService;
     private final AuditEventPublisher auditEventPublisher;
     private final ObjectMapper objectMapper;
+    private final AuthorityKeyPublisher authorityKeyPublisher;
 
     public void dispatch(DeviceMetricsDTO metrics, DeviceCommand command) {
 
@@ -39,6 +41,11 @@ public class DeviceCommandService {
         }
         if (command == DeviceCommand.RESTART && metrics.state() == DeviceState.ACTIVE) {
             log.debug("[DISPATCH] Skipping redundant RESTART for device={}", metrics.deviceId());
+            return;
+        }
+
+        if (!authorityKeyPublisher.isKeyActive()) {
+            log.warn("[DISPATCH] Command dropped — authority key activation window not yet elapsed.");
             return;
         }
 

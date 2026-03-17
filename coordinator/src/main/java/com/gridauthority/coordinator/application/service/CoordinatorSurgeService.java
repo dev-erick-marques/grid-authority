@@ -2,6 +2,7 @@ package com.gridauthority.coordinator.application.service;
 
 import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
 import com.gridauthority.coordinator.domain.model.DeviceSurgeState;
+import com.gridauthority.coordinator.infrastructure.hcs.AuthorityKeyPublisher;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
@@ -26,6 +27,7 @@ public class CoordinatorSurgeService {
     private final KmsSigningService kmsSigningService;
     private final HcsAnchorService hcsAnchorService;
     private final ObjectMapper objectMapper;
+    private final AuthorityKeyPublisher authorityKeyPublisher;
 
     public DeviceSurgeState getSurgeState(String deviceId) {
         return surgeStateRepository.get(deviceId);
@@ -49,6 +51,11 @@ public class CoordinatorSurgeService {
 
     private void dispatch(String deviceId, DeviceSurgeState nextState, String action) {
         SignedCommandPayload signed = kmsSigningService.issueCommand(deviceId, action);
+
+        if (!authorityKeyPublisher.isKeyActive()) {
+            log.warn("[DISPATCH] Command dropped — authority key activation window not yet elapsed.");
+            return;
+        }
 
         deviceRegistry.resolve(deviceId).ifPresentOrElse(baseUrl -> {
             try {
