@@ -50,12 +50,12 @@ public class CoordinatorSurgeService {
     }
 
     private void dispatch(String deviceId, DeviceSurgeState nextState, String action) {
-        SigningResult result = kmsSigningService.issueCommand(deviceId, action);
-
         if (!authorityKeyPublisher.isKeyActive()) {
             log.warn("[DISPATCH] Command dropped — authority key activation window not yet elapsed.");
             return;
         }
+        SigningResult result = kmsSigningService.issueCommand(deviceId, action);
+
 
         deviceRegistry.resolve(deviceId).ifPresentOrElse(baseUrl -> {
             try {
