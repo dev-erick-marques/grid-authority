@@ -7,7 +7,6 @@ import com.gridauthority.coordinator.domain.exceptions.KmsSigningFailedException
 import com.gridauthority.coordinator.domain.exceptions.KmsUnavailableException;
 import com.gridauthority.coordinator.infrastructure.config.KmsProperties;
 import jakarta.annotation.PostConstruct;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +19,7 @@ import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec;
 
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -52,12 +52,13 @@ public class KmsSigningService {
 
     public SigningResult issueCommand(String deviceId, String action) {
         long issuedAt = System.currentTimeMillis();
-        CommandSigningContext context = new CommandSigningContext(action, deviceId, issuedAt);
+        String commandId = UUID.randomUUID().toString();
+        CommandSigningContext context = new CommandSigningContext(action, commandId, deviceId, issuedAt);
         String canonicalJson = canonicalJsonMapper.writeCanonicalAsString(context);
         String signatureBase64 = signCanonical(context);
 
-        log.debug("[KMS] Signed action={} device={} keyId={}",
-                action, deviceId, shortKeyId(kmsProperties.getKeyId()));
+        log.debug("[KMS] Signed action={} device={} commandId={} keyId={}",
+                action, deviceId, commandId, shortKeyId(kmsProperties.getKeyId()));
 
         SignedCommandPayload payload = new SignedCommandPayload(signatureBase64, canonicalJson);
         return new SigningResult(payload, context, kmsProperties.getKeyId(), kmsProperties.getSigningAlgorithm());

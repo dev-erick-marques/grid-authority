@@ -14,7 +14,7 @@ class CanonicalJsonMapperTest {
 
     @Test
     void writeCanonical_shouldProduceDeterministicBytes_forSameInput() {
-        var ctx = new CommandSigningContext("SHUTDOWN", "device-1", 1_000_000L);
+        var ctx = new CommandSigningContext("SHUTDOWN", "cmd-1", "device-1", 1_000_000L);
 
         byte[] first  = mapper.writeCanonical(ctx);
         byte[] second = mapper.writeCanonical(ctx);
@@ -24,26 +24,29 @@ class CanonicalJsonMapperTest {
 
     @Test
     void writeCanonicalAsString_shouldSortPropertiesAlphabetically() {
-        var ctx = new CommandSigningContext("SHUTDOWN", "device-1", 1_000_000L);
+        var ctx = new CommandSigningContext("SHUTDOWN", "cmd-1", "device-1", 1_000_000L);
 
         String json = mapper.writeCanonicalAsString(ctx);
 
-        // alphabetical: action < deviceId < issuedAt
-        int actionIdx   = json.indexOf("\"action\"");
-        int deviceIdIdx = json.indexOf("\"deviceId\"");
-        int issuedAtIdx = json.indexOf("\"issuedAt\"");
+        // alphabetical: action < commandId < deviceId < issuedAt
+        int actionIdx    = json.indexOf("\"action\"");
+        int commandIdIdx = json.indexOf("\"commandId\"");
+        int deviceIdIdx  = json.indexOf("\"deviceId\"");
+        int issuedAtIdx  = json.indexOf("\"issuedAt\"");
 
-        assertThat(actionIdx).isLessThan(deviceIdIdx);
+        assertThat(actionIdx).isLessThan(commandIdIdx);
+        assertThat(commandIdIdx).isLessThan(deviceIdIdx);
         assertThat(deviceIdIdx).isLessThan(issuedAtIdx);
     }
 
     @Test
     void writeCanonicalAsString_shouldProduceValidJson() {
-        var ctx = new CommandSigningContext("RESTART", "dev-42", 9999L);
+        var ctx = new CommandSigningContext("RESTART", "cmd-42", "dev-42", 9999L);
 
         String json = mapper.writeCanonicalAsString(ctx);
 
         assertThat(json).contains("\"action\":\"RESTART\"");
+        assertThat(json).contains("\"commandId\":\"cmd-42\"");
         assertThat(json).contains("\"deviceId\":\"dev-42\"");
         assertThat(json).contains("\"issuedAt\":9999");
     }
@@ -65,8 +68,6 @@ class CanonicalJsonMapperTest {
 
     @Test
     void writeCanonical_shouldThrowCanonicalSerializationException_onUnserializableType() {
-        // Jackson calls getters during serialization; a getter that throws forces a JsonProcessingException,
-        // which CanonicalJsonMapper must wrap in CanonicalSerializationException.
         Object unserializable = new Object() {
             public String getValue() {
                 throw new UnsupportedOperationException("simulated serialization failure");
@@ -79,7 +80,7 @@ class CanonicalJsonMapperTest {
 
     @Test
     void writeCanonical_andWriteCanonicalAsString_shouldBeConsistent() {
-        var ctx = new CommandSigningContext("SHUTDOWN", "device-99", 12345L);
+        var ctx = new CommandSigningContext("SHUTDOWN", "cmd-99", "device-99", 12345L);
 
         byte[] bytes  = mapper.writeCanonical(ctx);
         String string = mapper.writeCanonicalAsString(ctx);

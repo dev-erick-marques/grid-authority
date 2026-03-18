@@ -1,8 +1,11 @@
 package com.gridauthority.device.aplication.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.gridauthority.device.aplication.dto.CommandSigningContext;
 import com.gridauthority.device.domain.exception.SignatureVerificationException;
 import com.gridauthority.device.infrastructure.config.SignatureVerificationProperties;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -22,6 +26,17 @@ public class CommandVerificationService {
     private final HcsKeyResolver hcsKeyResolver;
     private final SignatureVerificationProperties verificationProperties;
     private final ObjectMapper objectMapper;
+
+    private Cache<String, Boolean> seenCommandIds;
+
+    @PostConstruct
+    public void init() {
+        long windowMs = verificationProperties.getTimestampToleranceMs();
+        seenCommandIds = Caffeine.newBuilder()
+                .expireAfterWrite(windowMs + 5_000, TimeUnit.MILLISECONDS)
+                .maximumSize(500)
+                .build();
+    }
 
     public CommandSigningContext verify(String signatureBase64, String canonicalJson) {
         PublicKey publicKey = hcsKeyResolver.getResolvedPublicKey();
@@ -40,6 +55,14 @@ public class CommandVerificationService {
             throw new SignatureVerificationException(
                     "Command rejected — timestamp outside tolerance");
         }
+
+        if (seenCommandIds.getIfPresent(context.commandId()) != null) {
+            log.warn("[VERIFY] Replay detected — commandId={} already seen", context.commandId());
+            throw new SignatureVerificationException(
+                    "Command rejected — duplicate commandId");
+        }
+
+        seenCommandIds.put(context.commandId(), Boolean.TRUE);
 
         return context;
     }
