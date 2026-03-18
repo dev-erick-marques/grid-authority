@@ -1,12 +1,12 @@
 package com.gridauthority.coordinator.application.service;
 
-import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
 import com.gridauthority.coordinator.domain.model.DeviceSurgeState;
 import com.gridauthority.coordinator.infrastructure.hcs.AuthorityKeyPublisher;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
+import com.gridauthority.coordinator.infrastructure.kms.SigningResult;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
 import com.gridauthority.coordinator.infrastructure.repository.DeviceSurgeStateRepository;
 import com.gridauthority.coordinator.infrastructure.transport.SurgeTransport;
@@ -50,7 +50,7 @@ public class CoordinatorSurgeService {
     }
 
     private void dispatch(String deviceId, DeviceSurgeState nextState, String action) {
-        SignedCommandPayload signed = kmsSigningService.issueCommand(deviceId, action);
+        SigningResult result = kmsSigningService.issueCommand(deviceId, action);
 
         if (!authorityKeyPublisher.isKeyActive()) {
             log.warn("[DISPATCH] Command dropped — authority key activation window not yet elapsed.");
@@ -59,10 +59,9 @@ public class CoordinatorSurgeService {
 
         deviceRegistry.resolve(deviceId).ifPresentOrElse(baseUrl -> {
             try {
-                surgeTransport.send(baseUrl, deviceId, action, signed);
+                surgeTransport.send(baseUrl, deviceId, action, result.payload());
                 surgeStateRepository.set(deviceId, nextState);
-                anchorSurge(deviceId, action, signed);
-
+                anchorSurge(deviceId, action, result);
             } catch (RestClientException e) {
                 log.error("[SURGE] {} failed device={} — {}", action, deviceId, e.getMessage());
                 throw e;
@@ -73,15 +72,15 @@ public class CoordinatorSurgeService {
         });
     }
 
-    private void anchorSurge(String deviceId, String action, SignedCommandPayload signed) {
+    private void anchorSurge(String deviceId, String action, SigningResult result) {
         HcsPayload payload = HcsPayload.builder()
                 .eventType(HcsEvent.EventType.SURGE.name())
                 .deviceId(deviceId)
                 .action(action)
-                .keyId(signed.keyId())
-                .signingAlgorithm(signed.signingAlgorithm())
-                .signatureBase64(signed.signatureBase64())
-                .timestamp(signed.issuedAt())
+                .keyId(result.keyId())
+                .signingAlgorithm(result.signingAlgorithm())
+                .signatureBase64(result.payload().signatureBase64())
+                .timestamp(result.context().issuedAt())
                 .build();
 
         hcsAnchorService.anchorSurge(HcsEvent.of(payload, objectMapper));

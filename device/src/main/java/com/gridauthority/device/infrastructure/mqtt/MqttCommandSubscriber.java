@@ -1,5 +1,6 @@
 package com.gridauthority.device.infrastructure.mqtt;
 
+import com.gridauthority.device.aplication.dto.CommandSigningContext;
 import com.gridauthority.device.aplication.dto.SignedCommandDTO;
 import com.gridauthority.device.aplication.service.CommandVerificationService;
 import com.gridauthority.device.aplication.service.DeviceStateService;
@@ -41,9 +42,11 @@ public class MqttCommandSubscriber {
             try {
                 SignedCommandDTO signed = objectMapper.readValue(
                         message.getPayload(), SignedCommandDTO.class);
-                verificationService.verify(
-                        signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt());
-                DeviceCommand command = DeviceCommand.valueOf(signed.action());
+
+                CommandSigningContext context = verificationService.verify(
+                        signed.signatureBase64(), signed.canonicalJson());
+
+                DeviceCommand command = DeviceCommand.valueOf(context.action());
                 switch (command) {
                     case SHUTDOWN -> deviceStateService.shutdown();
                     case RESTART  -> deviceStateService.restart();
@@ -63,9 +66,11 @@ public class MqttCommandSubscriber {
             try {
                 SignedCommandDTO signed = objectMapper.readValue(
                         message.getPayload(), SignedCommandDTO.class);
-                verificationService.verify(
-                        signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt());
-                SurgeAction surgeAction = SurgeAction.valueOf(signed.action());
+
+                CommandSigningContext context = verificationService.verify(
+                        signed.signatureBase64(), signed.canonicalJson());
+
+                SurgeAction surgeAction = SurgeAction.valueOf(context.action());
                 switch (surgeAction) {
                     case SURGE_START       -> surgeModeService.forceSurge();
                     case SURGE_STOP        -> surgeModeService.forceNormal();

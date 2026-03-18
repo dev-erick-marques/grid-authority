@@ -1,7 +1,6 @@
 package com.gridauthority.coordinator.application.service;
 
 import com.gridauthority.coordinator.application.dto.DeviceMetricsDTO;
-import com.gridauthority.coordinator.application.dto.SignedCommandPayload;
 import com.gridauthority.coordinator.domain.model.DeviceCommand;
 import com.gridauthority.coordinator.domain.model.DeviceState;
 import com.gridauthority.coordinator.infrastructure.audit.AuditEventPublisher;
@@ -11,6 +10,7 @@ import com.gridauthority.coordinator.infrastructure.hcs.HcsAnchorService;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsEvent;
 import com.gridauthority.coordinator.infrastructure.hcs.HcsPayload;
 import com.gridauthority.coordinator.infrastructure.kms.KmsSigningService;
+import com.gridauthority.coordinator.infrastructure.kms.SigningResult;
 import com.gridauthority.coordinator.infrastructure.registry.DeviceRegistry;
 import com.gridauthority.coordinator.infrastructure.transport.CommandTransport;
 import lombok.RequiredArgsConstructor;
@@ -49,27 +49,23 @@ public class DeviceCommandService {
             return;
         }
 
-        SignedCommandPayload signed = kmsSigningService.issueCommand(
-                metrics.deviceId(), command.name());
+        SigningResult result = kmsSigningService.issueCommand(metrics.deviceId(), command.name());
+
         auditEventPublisher.publish(
-                AuditLogEntry.kmsSigned(
-                        metrics.deviceId(),
-                        command.name(),
-                        signed.keyId()
-                )
+                AuditLogEntry.kmsSigned(metrics.deviceId(), command.name(), result.keyId())
         );
+
         deviceRegistry.resolve(metrics.deviceId()).ifPresentOrElse(
                 baseUrl -> {
-                    commandTransport.send(baseUrl, metrics.deviceId(), command, signed);
-                    anchorDecision(metrics, command, signed);
+                    commandTransport.send(baseUrl, metrics.deviceId(), command, result.payload());
+                    anchorDecision(metrics, command, result);
                 },
                 () -> log.warn("[DISPATCH] No URL registered for device={} — {} not delivered",
                         metrics.deviceId(), command)
         );
     }
 
-    private void anchorDecision(DeviceMetricsDTO metrics, DeviceCommand command,
-                                SignedCommandPayload signed) {
+    private void anchorDecision(DeviceMetricsDTO metrics, DeviceCommand command, SigningResult result) {
         String reason = switch (command) {
             case SHUTDOWN -> "CV exceeded threshold";
             case RESTART  -> "stable cycles reached";
@@ -84,10 +80,10 @@ public class DeviceCommandService {
                 .cv(metrics.cv())
                 .mean(metrics.mean())
                 .std(metrics.std())
-                .keyId(signed.keyId())
-                .signingAlgorithm(signed.signingAlgorithm())
-                .signatureBase64(signed.signatureBase64())
-                .timestamp(signed.issuedAt())
+                .keyId(result.keyId())
+                .signingAlgorithm(result.signingAlgorithm())
+                .signatureBase64(result.payload().signatureBase64())
+                .timestamp(result.context().issuedAt())
                 .build();
 
         hcsAnchorService.anchorDecision(HcsEvent.of(payload, objectMapper));

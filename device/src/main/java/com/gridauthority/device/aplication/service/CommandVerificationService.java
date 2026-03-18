@@ -1,10 +1,12 @@
 package com.gridauthority.device.aplication.service;
 
+import com.gridauthority.device.aplication.dto.CommandSigningContext;
 import com.gridauthority.device.domain.exception.SignatureVerificationException;
 import com.gridauthority.device.infrastructure.config.SignatureVerificationProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
@@ -19,8 +21,9 @@ public class CommandVerificationService {
 
     private final HcsKeyResolver hcsKeyResolver;
     private final SignatureVerificationProperties verificationProperties;
+    private final ObjectMapper objectMapper;
 
-    public void verify(String signatureBase64, String canonicalJson, long issuedAt) {
+    public CommandSigningContext verify(String signatureBase64, String canonicalJson) {
         PublicKey publicKey = hcsKeyResolver.getResolvedPublicKey();
 
         if (publicKey == null) {
@@ -29,12 +32,25 @@ public class CommandVerificationService {
                             "Check hcs.public-key-topic-id.");
         }
 
-        if (!timestampValid(issuedAt)) {
+        verifySignature(signatureBase64, canonicalJson, publicKey);
+
+        CommandSigningContext context = deserializeContext(canonicalJson);
+
+        if (!timestampValid(context.issuedAt())) {
             throw new SignatureVerificationException(
                     "Command rejected — timestamp outside tolerance");
         }
 
-        verifySignature(signatureBase64, canonicalJson, publicKey);
+        return context;
+    }
+
+    private CommandSigningContext deserializeContext(String canonicalJson) {
+        try {
+            return objectMapper.readValue(canonicalJson, CommandSigningContext.class);
+        } catch (Exception e) {
+            throw new SignatureVerificationException(
+                    "Command rejected — canonicalJson could not be deserialized: " + e.getMessage(), e);
+        }
     }
 
     private boolean timestampValid(long issuedAt) {

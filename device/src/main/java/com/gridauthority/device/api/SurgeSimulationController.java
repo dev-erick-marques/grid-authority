@@ -1,5 +1,6 @@
 package com.gridauthority.device.api;
 
+import com.gridauthority.device.aplication.dto.CommandSigningContext;
 import com.gridauthority.device.aplication.dto.SignedCommandDTO;
 import com.gridauthority.device.aplication.service.CommandVerificationService;
 import com.gridauthority.device.aplication.service.SurgeModeService;
@@ -8,11 +9,12 @@ import com.gridauthority.device.domain.model.SurgeAction;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -28,17 +30,17 @@ public class SurgeSimulationController {
 
     @PostMapping("/surge/signed")
     public ResponseEntity<SurgeResponse> signedSurge(@RequestBody @Valid SignedCommandDTO signed) {
-        verificationService.verify(
-                signed.signatureBase64(), signed.canonicalJson(), signed.issuedAt()
+        CommandSigningContext context = verificationService.verify(
+                signed.signatureBase64(), signed.canonicalJson()
         );
 
-        log.info("[SURGE] Verified {} for device={}", signed.action(), signed.deviceId());
+        log.info("[SURGE] Verified {} for device={}", context.action(), context.deviceId());
 
         SurgeAction surgeAction;
         try {
-            surgeAction = SurgeAction.valueOf(signed.action());
+            surgeAction = SurgeAction.valueOf(context.action());
         } catch (IllegalArgumentException e) {
-            throw new UnknownCommandException(signed.action());
+            throw new UnknownCommandException(context.action());
         }
 
         return switch (surgeAction) {

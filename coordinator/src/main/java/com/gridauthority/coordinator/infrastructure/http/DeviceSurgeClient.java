@@ -25,8 +25,7 @@ public class DeviceSurgeClient implements SurgeTransport {
         String url = deviceBaseUrl + SURGE_PATH;
         try {
             restTemplate.postForLocation(url, payload);
-            log.info("[SURGE-CLIENT] {} → device={} (signed keyId={})",
-                    action, deviceId, payload.keyId());
+            log.info("[SURGE-CLIENT] {} → device={}", action, deviceId);
         } catch (RestClientException e) {
             log.error("[SURGE-CLIENT] Failed {} → device={} — {}", action, deviceId, e.getMessage());
             throw e;

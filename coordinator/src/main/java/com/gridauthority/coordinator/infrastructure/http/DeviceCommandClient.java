@@ -26,8 +26,7 @@ public class DeviceCommandClient implements CommandTransport {
         String url = deviceBaseUrl + COMMANDS_PATH;
         try {
             restTemplate.postForLocation(url, payload);
-            log.info("[HTTP] {} → device={} at {} (signed keyId={})",
-                    command, deviceId, deviceBaseUrl, payload.keyId());
+            log.info("[HTTP] {} → device={} at {} ", command, deviceId, deviceBaseUrl);
         } catch (RestClientException e) {
             log.error("[HTTP] Failed to send {} → device={} at {} — {}",
                     command, deviceId, deviceBaseUrl, e.getMessage());

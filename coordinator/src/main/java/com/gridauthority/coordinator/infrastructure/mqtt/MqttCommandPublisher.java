@@ -29,7 +29,7 @@ public class MqttCommandPublisher implements CommandTransport {
             msg.setQos(mqttProperties.getQos());
             msg.setRetained(false);
             mqttClient.publish(topic, msg);
-            log.info("[MQTT] {} → device={} key={}", command, deviceId, shortKeyId(payload.keyId()));
+            log.info("[MQTT] {} → device={}", command, deviceId);
         } catch (MqttException e) {
             throw new RuntimeException("MQTT publish failed for command " + command, e);
         } catch (Exception e) {
@@ -37,9 +37,4 @@ public class MqttCommandPublisher implements CommandTransport {
         }
     }
 
-    private static String shortKeyId(String keyId) {
-        if (keyId == null) return "none";
-        int slash = keyId.lastIndexOf('/');
-        return slash >= 0 ? keyId.substring(slash + 1) : keyId;
-    }
 }

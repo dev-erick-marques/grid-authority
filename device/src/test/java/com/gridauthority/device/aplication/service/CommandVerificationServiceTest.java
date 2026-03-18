@@ -1,26 +1,30 @@
 package com.gridauthority.device.aplication.service;
 
+import com.gridauthority.device.aplication.dto.CommandSigningContext;
 import com.gridauthority.device.domain.exception.SignatureVerificationException;
 import com.gridauthority.device.infrastructure.config.SignatureVerificationProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
-import java.security.*;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.Signature;
 import java.util.Base64;
 
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CommandVerificationServiceTest {
-
-    private static final String CANONICAL_JSON =
-            "{\"action\":\"SHUTDOWN\",\"deviceId\":\"device-01\",\"issuedAt\":1000}";
 
     private KeyPair keyPair;
     private HcsKeyResolver hcsKeyResolver;
     private SignatureVerificationProperties properties;
     private CommandVerificationService service;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -32,38 +36,33 @@ class CommandVerificationServiceTest {
         when(hcsKeyResolver.getResolvedPublicKey()).thenReturn(keyPair.getPublic());
 
         properties = new SignatureVerificationProperties();
-        properties.setEnabled(true);
         properties.setTimestampToleranceMs(30_000);
 
-        service = new CommandVerificationService(hcsKeyResolver, properties);
+        objectMapper = new ObjectMapper();
+
+        service = new CommandVerificationService(hcsKeyResolver, properties, objectMapper);
     }
 
     @Test
-    void verificationDisabledShouldAcceptAnyCommand() {
-        properties.setEnabled(false);
-        long issuedAt = System.currentTimeMillis();
-        assertThatNoException().isThrownBy(
-                () -> service.verify("not-a-real-sig", CANONICAL_JSON, issuedAt)
-        );
-        verifyNoInteractions(hcsKeyResolver);
+    void validSignatureShouldPassAndReturnContext() throws Exception {
+        String canonical = buildCanonical("SHUTDOWN", "device-01", System.currentTimeMillis());
+        String sig = sign(canonical, keyPair.getPrivate());
+
+        CommandSigningContext ctx = service.verify(sig, canonical);
+
+        assertThat(ctx.action()).isEqualTo("SHUTDOWN");
+        assertThat(ctx.deviceId()).isEqualTo("device-01");
     }
 
     @Test
-    void validSignatureShouldPass() throws Exception {
-        String sig = sign(CANONICAL_JSON, keyPair.getPrivate());
-        long issuedAt = System.currentTimeMillis();
-        assertThatNoException().isThrownBy(
-                () -> service.verify(sig, CANONICAL_JSON, issuedAt)
-        );
-    }
+    void tamperedCanonicalShouldFail() throws Exception {
+        String canonical = buildCanonical("SHUTDOWN", "device-01", System.currentTimeMillis());
+        String sig = sign(canonical, keyPair.getPrivate());
 
-    @Test
-    void tamperedPayloadShouldFail() throws Exception {
-        String sig = sign(CANONICAL_JSON, keyPair.getPrivate());
-        long issuedAt = System.currentTimeMillis();
-        assertThatThrownBy(
-                () -> service.verify(sig, "{\"action\":\"RESTART\"}", issuedAt)
-        ).isInstanceOf(SignatureVerificationException.class);
+        String tampered = canonical.replace("SHUTDOWN", "RESTART");
+
+        assertThatThrownBy(() -> service.verify(sig, tampered))
+                .isInstanceOf(SignatureVerificationException.class);
     }
 
     @Test
@@ -72,52 +71,62 @@ class CommandVerificationServiceTest {
         gen.initialize(256);
         KeyPair other = gen.generateKeyPair();
 
-        String sig = sign(CANONICAL_JSON, other.getPrivate());
-        long issuedAt = System.currentTimeMillis();
-        assertThatThrownBy(
-                () -> service.verify(sig, CANONICAL_JSON, issuedAt)
-        ).isInstanceOf(SignatureVerificationException.class);
+        String canonical = buildCanonical("SHUTDOWN", "device-01", System.currentTimeMillis());
+        String sig = sign(canonical, other.getPrivate());
+
+        assertThatThrownBy(() -> service.verify(sig, canonical))
+                .isInstanceOf(SignatureVerificationException.class);
     }
 
     @Test
     void expiredTimestampShouldFail() throws Exception {
-        String sig = sign(CANONICAL_JSON, keyPair.getPrivate());
-        long expired = System.currentTimeMillis() - 60_000;
-        assertThatThrownBy(
-                () -> service.verify(sig, CANONICAL_JSON, expired)
-        ).isInstanceOf(SignatureVerificationException.class)
+        String canonical = buildCanonical("SHUTDOWN", "device-01",
+                System.currentTimeMillis() - 60_000);
+        String sig = sign(canonical, keyPair.getPrivate());
+
+        assertThatThrownBy(() -> service.verify(sig, canonical))
+                .isInstanceOf(SignatureVerificationException.class)
                 .hasMessageContaining("timestamp");
     }
 
     @Test
     void futureTimestampShouldFail() throws Exception {
-        String sig = sign(CANONICAL_JSON, keyPair.getPrivate());
-        long future = System.currentTimeMillis() + 60_000;
-        assertThatThrownBy(
-                () -> service.verify(sig, CANONICAL_JSON, future)
-        ).isInstanceOf(SignatureVerificationException.class)
+        String canonical = buildCanonical("SHUTDOWN", "device-01",
+                System.currentTimeMillis() + 60_000);
+        String sig = sign(canonical, keyPair.getPrivate());
+
+        assertThatThrownBy(() -> service.verify(sig, canonical))
+                .isInstanceOf(SignatureVerificationException.class)
                 .hasMessageContaining("timestamp");
     }
 
     @Test
-    void unresolvedPublicKeyShouldFail() {
+    void unresolvedPublicKeyShouldFail() throws Exception {
         when(hcsKeyResolver.getResolvedPublicKey()).thenReturn(null);
-        long issuedAt = System.currentTimeMillis();
-        assertThatThrownBy(
-                () -> service.verify("any", CANONICAL_JSON, issuedAt)
-        ).isInstanceOf(SignatureVerificationException.class)
+        String canonical = buildCanonical("SHUTDOWN", "device-01", System.currentTimeMillis());
+        String sig = sign(canonical, keyPair.getPrivate());
+
+        assertThatThrownBy(() -> service.verify(sig, canonical))
+                .isInstanceOf(SignatureVerificationException.class)
                 .hasMessageContaining("Public key not resolved");
     }
 
     @Test
-    void malformedBase64SignatureShouldFail() {
-        long issuedAt = System.currentTimeMillis();
-        assertThatThrownBy(
-                () -> service.verify("!!!not-base64!!!", CANONICAL_JSON, issuedAt)
-        ).isInstanceOf(SignatureVerificationException.class);
+    void malformedBase64SignatureShouldFail() throws Exception {
+        String canonical = buildCanonical("SHUTDOWN", "device-01", System.currentTimeMillis());
+
+        assertThatThrownBy(() -> service.verify("!!!not-base64!!!", canonical))
+                .isInstanceOf(SignatureVerificationException.class);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private String buildCanonical(String action, String deviceId, long issuedAt) {
+        // matches CanonicalJsonMapper alphabetical ordering: action < deviceId < issuedAt
+        return String.format(
+                "{\"action\":\"%s\",\"deviceId\":\"%s\",\"issuedAt\":%d}",
+                action, deviceId, issuedAt);
+    }
 
     private String sign(String payload, PrivateKey privateKey) throws Exception {
         Signature sig = Signature.getInstance("SHA256withECDSA");
