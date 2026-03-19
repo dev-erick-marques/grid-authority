@@ -17,25 +17,22 @@ cryptographically signed, permanently auditable.**
 
 ---
 
----
-
 ## Why It Exists
 
-Electrical grids are sensitive. A voltage instability that crosses the **10% Coefficient of
-Variation threshold** — the EN 50160 European standard for acceptable grid fluctuation — can
-damage connected equipment, trigger cascading failures, or compromise the safety of the
-infrastructure itself. Human reaction time is not fast enough, and rule-based scripts are not
-trustworthy enough.
+Electrical grids are sensitive. Sustained voltage variations exceeding the limits in EN 50160 
+(±10% of nominal on 10-minute rms averages for 95% of a week, excluding interruptions) can damage 
+equipment, cause cascading failures, or compromise safety. Human response is too slow, and rule-based 
+scripts lack verifiable cryptographic authority.
 
-GridAuthority is an **autonomous control authority** that monitors device voltage in real time,
-computes **[statistical stability](./docs/metrics.md)** continuously, and acts without human intervention:
+GridAuthority autonomously monitors voltage in real time, computing [Coefficient of Variation](./docs/metrics.md)
+over a short sliding window (default: 10 samples at 1 sample/second → 10-second window). When CV exceeds 10% — a conservative
+threshold chosen to detect instability proactively and protect equipment well before potential sustained EN 50160 violations — 
+it issues an immediate `SHUTDOWN`. `RESTART` follows after a configurable number of consecutive stable cycles. 
 
-- When CV exceeds 10%, it issues a `SHUTDOWN` command immediately
-- After a configurable number of consecutive stable cycles, it issues a `RESTART`
-- Every decision is signed by a hardware-backed AWS KMS key and anchored immutably to Hedera HCS
+Every decision is signed via AWS KMS (hardware-backed)and anchored to Hedera HCS for immutable auditability.
 
-It ships with a real-time monitor, but that is not what it is. It is a deterministic control authority —
-the only entity on the network with the cryptographic standing to alter the operational state of a device.
+>Hackathon note: Computations use a simplified rectified signal model.
+>See [simulation disclaimer](./docs/simulation-disclaimer.md) for details and production recommendations (true Vrms, additional metrics).
 
 ### Beyond shutdown — grid/generator switching with zero downtime (roadmap)
 
@@ -52,7 +49,7 @@ SWITCH_TO_UPS, or SWITCH_TO_BACKUP upon CV threshold breach.
 
 No core changes required — command type is a payload field. 
 This extension relies on reliable device liveness detection (see Phi Accrual below) to confirm the target before switching..
- 
+
 ---
 ## Latency & Execution Model
 

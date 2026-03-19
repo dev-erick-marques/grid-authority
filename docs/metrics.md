@@ -1,10 +1,5 @@
 # Voltage Metrics — Formulas and Definitions
 
-> **Simulation disclaimer:** For hackathon purposes, metrics are collected over 
-> an already-rectified voltage signal, disregarding the post-rectification voltage increase —
-> the model assumes $V_{RMS} = V_{rectified}$. In production, the model should be computed over 
-> the true $V_{RMS}$ and extended with additional statistics such as load factor analysis.
-
 ## Arithmetic Mean ($\bar{V}$)
 
 $$

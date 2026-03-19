@@ -7,7 +7,18 @@ import com.gridauthority.coordinator.domain.exceptions.VoltageSensorFailureExcep
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
-
+/**
+ * Computes statistical voltage stability metrics over a fixed-size array of recent samples.
+ * Default usage: 10 consecutive samples at 1 sample/second → 10-second observation window.
+ *
+ * The Coefficient of Variation (CV%) serves as a normalized measure of short-term voltage fluctuation.
+ * In the decision engine, a threshold of 10% CV is applied as a conservative, fast-acting trigger
+ * for equipment protection — intentionally more sensitive than EN 50160's criterion of ±10% on
+ * 10-minute rms averages for 95% of a week.
+ *
+ * Sample rate and window size are currently fixed in the ingestion pipeline.
+ * For production, consider making them configurable and computing over true RMS values.
+ */
 @Service
 public class VoltageStatisticsService {
 
