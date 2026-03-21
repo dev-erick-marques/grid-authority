@@ -5,10 +5,17 @@ cryptographically signed, permanently auditable.**
 
 ---
 
+---
+
 ## Table of Contents
 
 - [Why It Exists](#why-it-exists)
+- [Target Sectors & Market Context](#target-sectors--market-context)
+- [Business Model](#business-model)
 - [The Three Pillars](#the-three-pillars)
+- [Beyond Shutdown — Signed Source Switching](#beyond-shutdown--gridgenerator-switching-with-zero-downtime-roadmap)
+- [Latency & Execution Model](#latency--execution-model)
+- [Key Management & Rotation](#key-management--rotation)
 - [Running Locally](#running-locally)
 - [Environment Variables](#environment-variables)
 - [Frontend Monitor](#frontend-monitor)
@@ -19,64 +26,65 @@ cryptographically signed, permanently auditable.**
 
 ## Why It Exists
 
-Electrical grids are sensitive. Sustained voltage variations exceeding the limits in EN 50160 
-(±10% of nominal on 10-minute rms averages for 95% of a week, excluding interruptions) can damage 
-equipment, cause cascading failures, or compromise safety. Human response is too slow, and rule-based 
-scripts lack verifiable cryptographic authority.
+Voltage instability is a silent, billion-dollar problem in critical infrastructure.
 
-GridAuthority autonomously monitors voltage in real time, computing [Coefficient of Variation](./docs/metrics.md)
-over a short sliding window (default: 10 samples at 1 sample/second → 10-second window). When CV exceeds 10% — a conservative
-threshold chosen to detect instability proactively and protect equipment well before potential sustained EN 50160 violations — 
-it issues an immediate `SHUTDOWN`. `RESTART` follows after a configurable number of consecutive stable cycles. 
+According to the Electric Power Research Institute (EPRI), industrial facilities experience an average of **66 voltage disturbance events per year**, costing US industry alone nearly **$60 billion annually** in equipment damage, unplanned downtime, and lost productivity. The Leonardo Power Quality Initiative estimates the equivalent figure for Europe at up to **€150 billion per year**. A single one-second voltage interruption costs an average industrial firm **$1,477**; a one-hour event costs **$7,795** — and in sectors like semiconductor fabrication or pharmaceutical production, a single unplanned shutdown can cost **millions**.
 
-Every decision is signed via AWS KMS (hardware-backed)and anchored to Hedera HCS for immutable auditability.
+The damage is fast. Human response is not.
 
->Hackathon note: Computations use a simplified rectified signal model.
->See [simulation disclaimer](./docs/simulation-disclaimer.md) for details and production recommendations (true Vrms, additional metrics).
+Sustained voltage variations exceeding EN 50160 limits (±10% of nominal on 10-minute rms averages for 95% of a week) can destroy equipment in milliseconds — long before any operator reaches a console. Rule-based scripts can react faster, but they carry no cryptographic authority: they cannot prove *who* authorized a shutdown, *why* it was triggered, or *when* it happened in a way that satisfies regulators, insurers, or legal audits.
 
-### Beyond shutdown — grid/generator switching with zero downtime (roadmap)
+GridAuthority closes that gap. It autonomously monitors voltage in real time, computing [Coefficient of Variation](./docs/metrics.md)
+over a short sliding window (default: 10 samples at 1 sample/second → 10-second window). When CV exceeds 10% — a conservative threshold chosen to detect instability proactively and protect equipment well before potential sustained EN 50160 violations — it issues an immediate `SHUTDOWN`. `RESTART` follows after a configurable number of consecutive stable cycles.
 
-Shutdown is the last resort. In environments where downtime is not acceptable — data centers,
-hospital infrastructure, industrial control systems — the same command model applies to a
-different action: **switching the power source**.
+Every decision is signed via AWS KMS (hardware-backed) and anchored to Hedera HCS for immutable auditability.
 
-When grid voltage instability is detected, GridAuthority can issue signed commands like SWITCH_TO_GENERATOR, 
-SWITCH_TO_UPS, or SWITCH_TO_BACKUP upon CV threshold breach.
+> Hackathon note: Computations use a simplified rectified signal model.
+> See [simulation disclaimer](./docs/simulation-disclaimer.md) for details and production recommendations (true Vrms, additional metrics).
 
-- Transfer switch acts in milliseconds with cryptographic assurance
-- Audit trail identical: CV trigger, timestamp, signature, anchored to HCS
-- Restoration via SWITCH_TO_GRID after stability returns
+### Regulatory context — auditability is already mandated
 
-No core changes required — command type is a payload field. 
-This extension relies on reliable device liveness detection (see Phi Accrual below) to confirm the target before switching..
+GridAuthority's audit model is not a nice-to-have. It is aligned with existing and emerging compliance mandates:
+
+- **NERC CIP** (Critical Infrastructure Protection) — mandatory across North America for bulk electric system operators; explicitly requires cryptographic key management and security event logging for protection systems.
+- **IEC 62351** — the international standard series for power system communication security; defines requirements for authentication, key management, and tamper-evident logging of control decisions.
+- **EN 50160** — the European standard that defines voltage quality limits and drives the CV threshold used in GridAuthority's detection model.
+
+For operators in regulated environments, GridAuthority's HCS-anchored audit trail and KMS-signed commands are not just a feature — they are a direct path to demonstrating compliance.
 
 ---
-## Latency & Execution Model
 
-GridAuthority implements a hybrid architecture to balance industrial safety (speed) with governance (transparency):
+## Target Sectors & Market Context
 
-Real-Time Execution (Fire-and-Forget): Critical commands (SHUTDOWN) are executed by the device in milliseconds
-upon receipt. The device validates the KMS signature locally. It does not wait for Hedera consensus to act,
-ensuring equipment is protected before damage occurs.
+GridAuthority is built for environments where voltage instability is not just an inconvenience — it is a safety and financial risk.
 
-Asynchronous Anchoring: While the device acts immediately, the Coordinator sends the event to Hedera HCS in parallel.
-This creates a permanent, non-repudiable audit trail of why and when the device was shut down.
+| Sector                           | Why voltage instability is critical                                                                                       | Estimated cost per event                                                           |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| **Data Centers**                 | UPS and cooling systems are voltage-sensitive; a sag can crash redundant systems simultaneously                           | ~$9,000/minute (Uptime Institute, 2023)                                            |
+| **Hospitals**                    | Life-support, surgical, and imaging equipment requires stable power; regulatory bodies mandate event logging              | Variable; legal liability unbounded                                                |
+| **Industrial / Manufacturing**   | Semiconductor fabs, pharmaceutical plants, and food processing lose batches on unplanned shutdowns                        | $1,477–$7,795 per event (EPRI); cold-restart costs can reach hundreds of thousands |
+| **Fermentation & Bioprocessing** | Temperature and power continuity are critical during fermentation cycles — a shutdown mid-cycle destroys the entire batch | Batch loss varies; days of downtime typical                                        |
 
-Consensus-Locked Rotation: Unlike shutdown commands, Key Rotations are governed by Hedera's consensus timestamp.
-Devices only transition to a new key after the consensus window is reached, preventing "split-brain" scenarios caused
-by local clock drift.
+**The total addressable problem:** US industry alone loses nearly **$60B/year** to voltage disturbances (EPRI). Europe adds up to **€150B/year** (Leonardo Power Quality Initiative). Voltage disturbances are the **third leading cause of industrial electrical failures**, accounting for 10.4% of all incidents (Rockwell Automation / EPRI).
 
-## Key Management & Rotation
+### Sources
+- EPRI / Rockwell Automation: *The Cost of Power Disturbances to Industrial & Digital Economy Companies*
+- Uptime Institute: *Annual Data Center Survey 2023*
+- Leonardo Power Quality Initiative: *European Power Quality Survey*
 
-The project implements a secure KMS key rotation mechanism integrated with the Hedera Consensus Service (HCS). This ensures that all devices in the grid synchronize state and cryptographic keys without relying on local clocks.
+---
 
-### Rotation Protocol Highlights:
-- **Alias-based Rotation**: Seamless transition by reassigning KMS aliases.
-- **Consensus-based Activation**: Uses Hedera's network consensus timestamp to prevent issues with clock drift.
-- **Grace Period**: Implementation of an `activateWindow` (e.g., 10,000ms) to ensure all devices receive the update before the old key is decommissioned.
-- **Flow Control**: The Coordinator pauses command emissions during the rotation window (`now + timestamp * 1.1`).
+## Business Model
 
-[Detailed Rotation Specification](./docs/key-rotation.md)
+GridAuthority is designed to be deployed as a **managed authority service** for operators of critical electrical infrastructure:
+
+- **Per-device SaaS** — monthly fee per monitored device; pricing scales with device count and telemetry frequency
+- **Compliance reporting tier** — additional module providing exportable, HCS-verified audit reports for NERC CIP / IEC 62351 submissions
+- **On-premise enterprise license** — for operators who cannot route telemetry to external coordinators; full stack deployed inside the operator's VPC with KMS and Hedera connectivity retained
+
+The Hedera integration is not optional in the compliance tier — it is the product. An erasable local log does not satisfy NERC CIP's tamper-evidence requirements. HCS-anchored decisions do.
+
+---
 
 ## The Three Pillars
 
@@ -97,7 +105,7 @@ locally using `java.security` before accepting any state change.
 ### 2. Hedera HCS — Dynamic Identity & Rotation
 
 Identity Anchoring: On startup, the AuthorityKeyPublisher fetches the public key from
-KMS and publishes an  event to HCS. The device's trust anchor is the immutable ledger, 
+KMS and publishes an  event to HCS. The device's trust anchor is the immutable ledger,
 not a vulnerable HTTP endpoint.
 
 Seamless Transition: Key rotation is handled dynamically. The new public key metadata
@@ -109,23 +117,70 @@ requiring no manual restarts or firmware updates.
 
 Every governance event is anchored asynchronously to HCS. Each topic corresponds to a specific event type:
 
-- AUTHORITY_KEY_PUBLISHED — published to the publicKeyTopicId topic; contains the coordinator's public key 
-information and metadata required for devices to verify signatures.
+- AUTHORITY_KEY_PUBLISHED — published to the publicKeyTopicId topic; contains the coordinator's public key
+  information and metadata required for devices to verify signatures.
 
-- DECISION — published to the decisionTopicId topic; contains device identifiers, action type (e.g., SHUTDOWN, RESTART), 
-stability metrics, the command payload hash, and the KMS signature.
+- DECISION — published to the decisionTopicId topic; contains device identifiers, action type (e.g., SHUTDOWN, RESTART),
+  stability metrics, the command payload hash, and the KMS signature.
 
-- SURGE — published to the surgeTopicId topic; represents a simulated voltage surge event, including affected 
-device identifiers, the simulated action, payload hash, and signature.
+- SURGE — published to the surgeTopicId topic; represents a simulated voltage surge event, including affected
+  device identifiers, the simulated action, payload hash, and signature.
 
-The payloadHash is always the SHA-256 of the canonical JSON signed by KMS. External auditors can verify that the anchored 
-hash matches the signature without needing access to the system itself. The exact fields carried in each event may evolve 
+The payloadHash is always the SHA-256 of the canonical JSON signed by KMS. External auditors can verify that the anchored
+hash matches the signature without needing access to the system itself. The exact fields carried in each event may evolve
 over time as the system expands, but the anchoring and verification model remains consistent.
 
 > The transport and broker layers have known shortcuts made for hackathon scope.
 See [Security Considerations](./docs/security-considerations.md) for details and production fixes
 ---
 
+## Beyond shutdown — grid/generator switching with zero downtime (roadmap)
+
+Shutdown is the last resort. In environments where downtime is not acceptable — data centers averaging **$9,000 per minute** of outage (Uptime Institute, 2023), hospitals with life-critical systems, or industrial plants where a cold-start after an unplanned stop can cost **hundreds of thousands of dollars** — the same command model applies to a different action: **switching the power source**.
+
+When grid voltage instability is detected, GridAuthority can issue signed commands like SWITCH_TO_GENERATOR,
+SWITCH_TO_UPS, or SWITCH_TO_BACKUP upon CV threshold breach.
+
+- Transfer switch acts in milliseconds with cryptographic assurance
+- Audit trail identical: CV trigger, timestamp, signature, anchored to HCS
+- Restoration via SWITCH_TO_GRID after stability returns
+
+No core changes required — command type is a payload field.
+This extension relies on reliable device liveness detection (see Phi Accrual below) to confirm the target before switching..
+
+---
+
+
+## Latency & Execution Model
+
+GridAuthority implements a hybrid architecture to balance industrial safety (speed) with governance (transparency):
+
+Real-Time Execution (Fire-and-Forget): Critical commands (SHUTDOWN) are executed by the device in milliseconds
+upon receipt. The device validates the KMS signature locally. It does not wait for Hedera consensus to act,
+ensuring equipment is protected before damage occurs.
+
+Asynchronous Anchoring: While the device acts immediately, the Coordinator sends the event to Hedera HCS in parallel.
+This creates a permanent, non-repudiable audit trail of why and when the device was shut down.
+
+Consensus-Locked Rotation: Unlike shutdown commands, Key Rotations are governed by Hedera's consensus timestamp.
+Devices only transition to a new key after the consensus window is reached, preventing "split-brain" scenarios caused
+by local clock drift.
+
+---
+
+## Key Management & Rotation
+
+The project implements a secure KMS key rotation mechanism integrated with the Hedera Consensus Service (HCS). This ensures that all devices in the grid synchronize state and cryptographic keys without relying on local clocks.
+
+### Rotation Protocol Highlights:
+- **Alias-based Rotation**: Seamless transition by reassigning KMS aliases.
+- **Consensus-based Activation**: Uses Hedera's network consensus timestamp to prevent issues with clock drift.
+- **Grace Period**: Implementation of an `activateWindow` (e.g., 10,000ms) to ensure all devices receive the update before the old key is decommissioned.
+- **Flow Control**: The Coordinator pauses command emissions during the rotation window (`now + timestamp * 1.1`).
+
+[Detailed Rotation Specification](./docs/key-rotation.md)
+
+---
 
 ## Running Locally
 
@@ -182,6 +237,7 @@ After startup, open:
 http://localhost:3000
 ```
 
+---
 
 ## Environment Variables
 
@@ -308,9 +364,10 @@ Access at `http://localhost:3000` after `docker compose up`.
 
 ## Future Work
 
+
 ### Phi Accrual Failure Detection
 
-The current stability model* evaluates voltage CV over a sliding window but does not actively detect unresponsive devices. 
+The current stability model* evaluates voltage CV over a sliding window but does not actively detect unresponsive devices.
 A device that stops sending telemetry is currently ignored, which can delay corrective actions beyond simple shutdown.
 Phi Accrual — the failure detector used in production by Apache Cassandra and Akka — introduces a continuous suspicion
 metric φ, derived from historical heartbeat intervals for each device. This allows the coordinator to make proactive, intelligent
@@ -319,12 +376,12 @@ decisions instead of only triggering SHUTDOWN:
 - φ ≥ 8.0 corresponds to ~99.99% confidence that the device is unresponsive
 
 - Instead of only issuing SHUTDOWN, the coordinator can trigger contextual actions, such as switching to a backup power source
-or rerouting load
+  or rerouting load
 
-- φ rising across multiple devices provides an early indicator of systemic issues and can guide global coordinator 
-actions beyond single-device shutdowns
+- φ rising across multiple devices provides an early indicator of systemic issues and can guide global coordinator
+  actions beyond single-device shutdowns
 
-This approach enables GridAuthority to implement autonomous, stability-driven interventions that maintain operational 
+This approach enables GridAuthority to implement autonomous, stability-driven interventions that maintain operational
 continuity — aligning with the “Beyond shutdown” philosophy introduced earlier.
 
 ### Coordinator SPOF Mitigation
