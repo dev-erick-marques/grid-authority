@@ -9,7 +9,7 @@ html, body, #root {
 }
 
 body {
-  background: #080a0f;
+  background: #212121;
   color: #e0e0e0;
   font-family: 'IBM Plex Sans', sans-serif;
 }
@@ -19,7 +19,7 @@ body {
 ::-webkit-scrollbar-thumb  { background: #1e2030; border-radius: 3px; }
 
 :root {
-  --color-bg:      #080a0f;
+  --color-bg:      #212121;
   --color-surface: rgba(255, 255, 255, 0.018);
   --color-border:  rgba(255, 255, 255, 0.07);
   --color-muted:   #aaa9a9;

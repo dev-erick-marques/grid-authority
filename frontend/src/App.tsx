@@ -1,5 +1,6 @@
 import "./styles/global.css"
 import { useState } from 'react'
+import logoSrc from './assets/logo.png'
 import type { MetricConfig } from './constants'
 import { useDevices } from './hooks/useDevices'
 import { LoadingScreen } from './components/LoadingScreen'
@@ -25,12 +26,19 @@ export default function App() {
       <div className="ambient-glow" />
       <div className="app-wrapper">
         <header className="app-header">
-          <div>
-            <p className="app-eyebrow">Coordinator Monitor</p>
-            <h1 className="app-title">GridAuthority</h1>
-            <p className="app-subtitle">
-              Sliding window · SSE stream · CV threshold {threshold.thresholdCV}%
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
+            <img
+              src={logoSrc}
+              alt="GridAuthority"
+              style={{ width: '70px', height: '70px', objectFit: 'contain' }}
+            />
+            <div>
+              <p className="app-eyebrow">Coordinator Monitor</p>
+              <h1 className="app-title">GridAuthority</h1>
+              <p className="app-subtitle">
+                Sliding window · SSE stream · CV threshold {threshold.thresholdCV}%
+              </p>
+            </div>
           </div>
           <MetricSelector value={metricKey} onChange={setMetricKey} />
         </header>
