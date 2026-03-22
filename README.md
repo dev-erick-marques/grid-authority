@@ -21,6 +21,7 @@ cryptographically signed, permanently auditable.**
 - [Frontend Monitor](#frontend-monitor)
 - [API Reference](#api-reference)
 - [Future Work](#future-work)
+- [License](#license)
 
 ---
 
@@ -344,21 +345,56 @@ Access at `http://localhost:3000` after `docker compose up`.
 
 ### Coordinator (`localhost:8080`)
 
-| Method | Path                          | Description                                                          |
-|--------|-------------------------------|----------------------------------------------------------------------|
-| `POST` | `/api/metrics`                | Ingest voltage telemetry from a device                               |
-| `GET`  | `/api/metrics/stream`         | SSE stream of real-time metrics and decisions                        |
-| `GET`  | `/api/policy`                 | Current policy configuration (`thresholdCv`, `stableCyclesRequired`) |
-| `POST` | `/api/simulation/surge/start` | Start voltage surge simulation                                       |
-| `POST` | `/api/simulation/surge/stop`  | Stop voltage surge simulation                                        |
-| `GET`  | `/actuator/health`            | Spring Boot health endpoint                                          |
+#### Telemetry & Metrics
+
+| Method | Path                              | Description                                   |
+|--------|-----------------------------------|-----------------------------------------------|
+| `POST` | `/api/devices/telemetry`          | Ingest voltage telemetry from a device        |
+| `GET`  | `/api/devices/metrics`            | Metrics history snapshot for all devices      |
+| `GET`  | `/api/devices/{deviceId}/metrics` | Metrics history for a specific device         |
+| `GET`  | `/api/stream`                     | SSE stream of real-time metrics and decisions |
+
+#### Stability
+
+| Method | Path                       | Description                         |
+|--------|----------------------------|-------------------------------------|
+| `GET`  | `/api/stability/threshold` | Current CV threshold configuration  |
+
+#### Surge Simulation
+
+| Method | Path                                        | Description                              |
+|--------|---------------------------------------------|------------------------------------------|
+| `GET`  | `/api/devices/{deviceId}/surge`             | Current surge state for a device         |
+| `POST` | `/api/devices/{deviceId}/surge/start`       | Start a continuous surge on a device     |
+| `POST` | `/api/devices/{deviceId}/surge/stop`        | Stop an active surge on a device         |
+| `POST` | `/api/devices/{deviceId}/surge/cycle/start` | Start the auto surge cycle on a device   |
+| `POST` | `/api/devices/{deviceId}/surge/cycle/stop`  | Stop the auto surge cycle on a device    |
+
+#### Audit & Authority
+
+| Method | Path                        | Description                               |
+|--------|-----------------------------|-------------------------------------------|
+| `GET`  | `/api/audit/stream`         | SSE stream of HCS-anchored audit events   |
+| `GET`  | `/api/audit/topics`         | HCS topic IDs and network in use          |
+| `GET`  | `/api/authority/public-key` | Current KMS public key (PEM + keyId)      |
+
+#### Administration
+
+| Method | Path                | Description                                  |
+|--------|---------------------|----------------------------------------------|
+| `POST` | `/admin/rotate-key` | Re-publish public key to HCS after rotation  |
+| `GET`  | `/actuator/health`  | Spring Boot health endpoint                  |
+
+---
 
 ### Device (`localhost:8081`)
 
-| Method | Path               | Description                                   |
-|--------|--------------------|-----------------------------------------------|
-| `POST` | `/api/commands`    | Receive a signed command from the coordinator |
-| `GET`  | `/actuator/health` | Spring Boot health endpoint                   |
+| Method | Path                | Description                                                                                              |
+|--------|---------------------|----------------------------------------------------------------------------------------------------------|
+| `GET`  | `/api/state`        | Current device state (`ACTIVE` / `SHUTDOWN`)                                                             |
+| `POST` | `/api/command`      | Receive a signed `SHUTDOWN` / `RESTART` command                                                          |
+| `POST` | `/api/surge/signed` | Receive a signed surge action (`SURGE_START`, `SURGE_STOP`, `SURGE_CYCLE_START`, `SURGE_CYCLE_STOP`)     |
+| `GET`  | `/actuator/health`  | Spring Boot health endpoint                                                                              |
 
 ---
 
@@ -396,3 +432,33 @@ unchanged.
 A `DEVICE_REGISTERED` event per device on first telemetry receipt would produce an auditable
 inventory snapshot on HCS — enabling external verification of which devices were active across
 coordinator lifecycle boundaries.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](./LICENCE).
+
+```
+MIT License
+
+Copyright (c) 2026 Erick Marques
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
