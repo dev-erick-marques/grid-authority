@@ -3,7 +3,11 @@
 **Autonomous voltage authority for sensitive electrical grid devices — stability-driven shutdown,
 cryptographically signed, permanently auditable.**
 
----
+[Demo video](https://www.youtube.com/watch?v=F2J3qaMA9Gg) - [Pitch PDF](https://drive.google.com/file/d/1zIp843nc6s_-oVDZ_21AtpmxRpZyGCHS/view?usp=drive_link)
+
+
+**Demo Topics (Testnet):**  
+`0.0.8132592` • `0.0.8132601` • `0.0.8132604`
 
 ---
 
