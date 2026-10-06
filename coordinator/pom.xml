@@ -12,7 +12,7 @@
 	<artifactId>coordinator</artifactId>
 	<version>0.0.1</version>
 	<name>coordinator</name>
-	<description>Coordinator service — voltage evaluation and signed local actions</description>
+	<description>Grid Guard coordinator — observability, prediction, governance and signed local actions</description>
 	<url/>
 	<licenses>
 		<license/>

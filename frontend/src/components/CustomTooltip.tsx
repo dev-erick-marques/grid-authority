@@ -26,11 +26,11 @@ export function CustomTooltip({ active, payload, label, unit }: CustomTooltipPro
 
             <div
                 className="chart-tooltip__decision"
-                style={{ color: d.shutdown ? '#ff4757' : '#2ed573' }}
+                style={{ color: d.decision === 'EMERGENCY_PROTECTION' ? '#ff4757' : '#2ed573' }}
             >
                 <span style={{
                     width: 6, height: 6, borderRadius: '50%',
-                    background: d.shutdown ? '#ff4757' : '#2ed573',
+                    background: d.decision === 'EMERGENCY_PROTECTION' ? '#ff4757' : '#2ed573',
                     display: 'inline-block',
                 }} />
                 {d.decision}

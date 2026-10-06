@@ -12,48 +12,21 @@ import { CustomTooltip } from './CustomTooltip'
 import { StatBadge } from './StatBadge'
 import { SurgeToggle, SurgePanel } from './SurgePanel'
 
-type DeviceState = 'ACTIVE' | 'SHUTDOWN'
-
-function RestartCountdown({ stableCycle, stableCyclesRequired }: { stableCycle: number; stableCyclesRequired: number }) {
-    const [tick, setTick] = useState(stableCycle)
-
-    useEffect(() => {
-        setTick(stableCycle)
-    }, [stableCycle])
-
-    useEffect(() => {
-        const id = setInterval(() => setTick((t) => Math.min(t + 1, stableCyclesRequired)), 1000)
-        return () => clearInterval(id)
-    }, [stableCyclesRequired])
-
-    return (
-        <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 11,
-            color: '#ff4757',
-            letterSpacing: '0.04em',
-        }}>
-            {tick}<span style={{ opacity: 0.5 }}>/{stableCyclesRequired}</span>
-        </div>
-    )
-}
-
+type DeviceState = 'ACTIVE'
 
 function DecisionPill({ state, ready }: { state: DeviceState | undefined; ready: boolean }) {
-    const shutdown = state === 'SHUTDOWN'
-    const label = !ready ? 'WARMING UP' : shutdown ? 'SHUTDOWN' : 'ACTIVE'
-    const color = !ready ? '#333' : shutdown ? '#ff4757' : '#2ed573'
-    const bg = !ready ? 'rgba(255,255,255,0.03)' : shutdown ? 'rgba(255,71,87,0.12)' : 'rgba(46,213,115,0.1)'
-    const border = !ready ? 'rgba(255,255,255,0.06)' : shutdown ? 'rgba(255,71,87,0.3)' : 'rgba(46,213,115,0.25)'
+    const label = !ready ? 'WARMING UP' : 'ACTIVE'
+    const color = !ready ? '#333' : '#2ed573'
+    const bg = !ready ? 'rgba(255,255,255,0.03)' : 'rgba(46,213,115,0.1)'
+    const border = !ready ? 'rgba(255,255,255,0.06)' : 'rgba(46,213,115,0.25)'
 
     return (
         <div className="decision-pill" style={{ background: bg, color, border: `1px solid ${border}` }}>
             {ready && (
                 <span style={{
                     width: 5, height: 5, borderRadius: '50%', background: color,
-                    boxShadow: `0 0 ${shutdown ? 8 : 6}px ${color}`,
-                    animation: shutdown ? 'pulse 1s infinite' : 'none',
+                    boxShadow: `0 0 6px ${color}`,
+                    animation: 'none',
                 }} />
             )}
             {label}
@@ -81,7 +54,7 @@ function EmptyChart() {
     )
 }
 
-function surgeCardStyle(surgeState: DeviceSurgeState, isShutdown: boolean) {
+function surgeCardStyle(surgeState: DeviceSurgeState) {
     if (surgeState === 'SURGE_ACTIVE') return {
         border: '1px solid rgba(255,159,67,0.45)',
         boxShadow: '0 0 60px rgba(255,159,67,0.1), inset 0 0 50px rgba(255,159,67,0.04)',
@@ -91,11 +64,6 @@ function surgeCardStyle(surgeState: DeviceSurgeState, isShutdown: boolean) {
         border: '1px solid rgba(162,155,254,0.45)',
         boxShadow: '0 0 60px rgba(162,155,254,0.1), inset 0 0 50px rgba(162,155,254,0.04)',
         accentGradient: 'linear-gradient(90deg, transparent, rgba(162,155,254,0.5), transparent)',
-    }
-    if (isShutdown) return {
-        border: '1px solid rgba(255,71,87,0.35)',
-        boxShadow: '0 0 60px rgba(255,71,87,0.07), inset 0 0 40px rgba(255,71,87,0.03)',
-        accentGradient: 'linear-gradient(90deg, transparent, rgba(255,71,87,0.4), transparent)',
     }
     return {
         border: '1px solid rgba(255,255,255,0.07)',
@@ -114,12 +82,11 @@ export function DeviceCard({ device, metricKey, thresholdCV }: DeviceCardProps) 
     const history = useRealStream(device.id)
     const latest = history[history.length - 1]
     const metric = METRICS.find((m) => m.key === metricKey) as MetricConfig
-    const isShutdown = latest?.state === 'SHUTDOWN'
     const surgeState = latest?.surgeState ?? 'INACTIVE'
 
     const [surgeOpen, setSurgeOpen] = useState(false)
 
-    const cardSt = surgeCardStyle(surgeState, isShutdown)
+    const cardSt = surgeCardStyle(surgeState)
 
     return (
         <div
@@ -134,12 +101,6 @@ export function DeviceCard({ device, metricKey, thresholdCV }: DeviceCardProps) 
                     <div className="card-device-name">{device.label}</div>
                 </div>
                 <div className="card-header-actions">
-                    {isShutdown && (latest?.stableCycle ?? 0) > 1 && (
-                        <RestartCountdown
-                            stableCycle={latest!.stableCycle}
-                            stableCyclesRequired={latest!.stableCyclesRequired}
-                        />
-                    )}
                     <DecisionPill state={latest?.state} ready={!!latest} />
                     <SurgeToggle
                         surgeState={surgeState}
@@ -151,9 +112,9 @@ export function DeviceCard({ device, metricKey, thresholdCV }: DeviceCardProps) 
 
             <div className="stats-row">
                 <StatBadge label="Mean" value={latest?.mean.toFixed(1)} unit="V" color="#00e5ff" />
-                <StatBadge label="Std Dev" value={latest?.std.toFixed(2)} unit="" color="#ff9f43" />
                 <StatBadge label="CV" value={latest?.cv.toFixed(2)} unit="%" color="#ff4757" alert={(latest?.cv ?? 0) > thresholdCV} />
-                <StatBadge label="Variance" value={latest?.variance.toFixed(2)} unit="" color="#a29bfe" />
+                <StatBadge label="Risk" value={latest ? (latest.riskScore * 100).toFixed(0) : undefined} unit="%" color="#a29bfe" />
+                <StatBadge label="TTT" value={latest?.timeToThreshold != null ? latest.timeToThreshold.toFixed(0) : '—'} unit="s" color="#ff9f43" />
             </div>
 
             <div className="chart-area">

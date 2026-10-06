@@ -1,6 +1,5 @@
 import { useAuditStream } from '../hooks/useAuditStream'
 import type { AuditEntry, AuditEntryType } from '../hooks/useAuditStream'
-import { useAuditTopics } from '../hooks/useAuditTopics'
 
 const TYPE_META: Record<AuditEntryType, {
     color: string
@@ -9,15 +8,15 @@ const TYPE_META: Record<AuditEntryType, {
     label: string
     detail: (entry: AuditEntry) => string
 }> = {
-    KMS_SIGNED: {
-        color: '#00e5ff', bg: 'rgba(0,229,255,0.06)', border: 'rgba(0,229,255,0.18)', label: 'KMS',
+    DECISION: {
+        color: '#00e5ff', bg: 'rgba(0,229,255,0.06)', border: 'rgba(0,229,255,0.18)', label: 'SIGNED',
         detail: (e) => `${e.action ?? '?'} · ${e.deviceId ?? '?'}`,
     },
-    HCS_ANCHORED: {
-        color: '#2ed573', bg: 'rgba(46,213,115,0.06)', border: 'rgba(46,213,115,0.18)', label: 'HCS',
+    AUDIT: {
+        color: '#2ed573', bg: 'rgba(46,213,115,0.06)', border: 'rgba(46,213,115,0.18)', label: 'AUDIT',
         detail: (e) => `${e.action ?? e.eventType ?? '?'} · ${e.deviceId ?? '?'}`,
     },
-    HCS_ERROR: {
+    ERROR: {
         color: '#ff4757', bg: 'rgba(255,71,87,0.07)', border: 'rgba(255,71,87,0.22)', label: 'ERR',
         detail: (e) => `${e.eventType ?? '?'} · ${e.deviceId ?? '?'} · ${e.error?.slice(0, 60) ?? '?'}`,
     },
@@ -25,61 +24,6 @@ const TYPE_META: Record<AuditEntryType, {
 
 function fmt(ts: number) {
     return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-}
-
-function hashScanUrl(network: string, topicId: string) {
-    return `https://hashscan.io/${network}/topic/${topicId}`
-}
-
-interface TopicButtonProps {
-    label: string
-    topicId: string | null | undefined
-    network: string
-}
-
-function TopicButton({ label, topicId, network }: TopicButtonProps) {
-    if (!topicId) return null
-
-    return (
-        <a
-            href={hashScanUrl(network, topicId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={`${label} — ${topicId}`}
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '5px 11px',
-                borderRadius: 7,
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: '0.12em',
-                fontFamily: "'IBM Plex Mono', monospace",
-                color: '#2ed573',
-                background: 'rgba(46,213,115,0.07)',
-                border: '1px solid rgba(46,213,115,0.2)',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-                transition: 'background 0.15s, border-color 0.15s',
-                cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => {
-                ; (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(46,213,115,0.14)'
-                    ; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(46,213,115,0.45)'
-            }}
-            onMouseLeave={(e) => {
-                ; (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(46,213,115,0.07)'
-                    ; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(46,213,115,0.2)'
-            }}
-        >
-            <svg width="9" height="9" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M7 1h4v4M11 1L6 6M5 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1V8"
-                    stroke="#2ed573" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {label}
-        </a>
-    )
 }
 
 function AuditRow({ entry }: { entry: AuditEntry }) {
@@ -130,7 +74,6 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 
 export function AuditLog() {
     const entries = useAuditStream()
-    const topics = useAuditTopics()
 
     return (
         <section style={{ marginTop: 48 }}>
@@ -159,13 +102,6 @@ export function AuditLog() {
                         <h2 style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', color: '#f2f2f2', margin: 0 }}>
                             Live Event Log
                         </h2>
-                        {topics && (
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                <TopicButton label="PUBLIC KEY" topicId={topics.publicKeyTopicId} network={topics.network} />
-                                <TopicButton label="DECISION" topicId={topics.decisionTopicId} network={topics.network} />
-                                <TopicButton label="SURGE" topicId={topics.surgeTopicId} network={topics.network} />
-                            </div>
-                        )}
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>

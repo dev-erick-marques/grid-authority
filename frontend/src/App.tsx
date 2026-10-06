@@ -50,7 +50,7 @@ export default function App() {
         <div className="legend-bar">
           {([
             { color: '#2ed573', label: 'ACTIVE — CV within threshold' },
-            { color: '#ff4757', label: `SHUTDOWN — CV exceeded ${threshold.thresholdCV}` },
+            { color: '#ff4757', label: `EMERGENCY PROTECTION — CV context ${threshold.thresholdCV}` },
             { color: '#ff9f43', label: 'SURGE ACTIVE — manual spike' },
             { color: '#a29bfe', label: 'CYCLE ACTIVE — auto loop' },
           ] as const).map(({ color, label }) => (

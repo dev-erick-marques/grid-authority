@@ -12,7 +12,7 @@
 	<artifactId>device</artifactId>
 	<version>0.0.1</version>
 	<name>device</name>
-	<description>Device service — voltage simulation and command verification</description>
+	<description>Device service — telemetry, local command verification and safe execution</description>
 	<url/>
 	<licenses>
 		<license/>
