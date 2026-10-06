@@ -1,42 +1,35 @@
 package com.gridauthority.device.aplication.service;
 
-import com.gridauthority.device.domain.exception.DeviceAlreadyActiveException;
-import com.gridauthority.device.domain.exception.DeviceAlreadyShutdownException;
+import com.gridauthority.device.domain.model.DeviceCommand;
 import com.gridauthority.device.domain.model.DeviceState;
-import com.gridauthority.device.infrastructure.config.DeviceSimulationProperties;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-@Service
-@RequiredArgsConstructor
 @Slf4j
+@Service
 public class DeviceStateService {
+    public enum OperatingMode { NORMAL, BACKUP_PREPARED, GENERATOR_STARTING, GENERATOR_ACTIVE, UPS_ACTIVE, LOAD_REDUCED, PROTECTED }
 
-    private final DeviceSimulationProperties properties;
-    private final AtomicReference<DeviceState> state = new AtomicReference<>(DeviceState.ACTIVE);
+    private final AtomicReference<OperatingMode> mode = new AtomicReference<>(OperatingMode.NORMAL);
 
-    public DeviceState current() {
-        return state.get();
-    }
+    public DeviceState current() { return DeviceState.ACTIVE; }
+    public OperatingMode operatingMode() { return mode.get(); }
 
-    public DeviceState shutdown() {
-        if (state.get() == DeviceState.SHUTDOWN) {
-            throw new DeviceAlreadyShutdownException(properties.getId());
-        }
-        state.set(DeviceState.SHUTDOWN);
-        log.warn("[DEVICE] {} → SHUTDOWN", properties.getId());
-        return state.get();
-    }
-
-    public DeviceState restart() {
-        if (state.get() == DeviceState.ACTIVE) {
-            throw new DeviceAlreadyActiveException(properties.getId());
-        }
-        state.set(DeviceState.ACTIVE);
-        log.info("[DEVICE] {} → ACTIVE", properties.getId());
-        return state.get();
+    public OperatingMode execute(DeviceCommand command) {
+        OperatingMode next = switch (command) {
+            case OBSERVE, WARN -> mode.get();
+            case PREPARE_BACKUP -> OperatingMode.BACKUP_PREPARED;
+            case START_GENERATOR -> OperatingMode.GENERATOR_STARTING;
+            case SWITCH_TO_GENERATOR, TRANSFER_PRIORITY_LOAD -> OperatingMode.GENERATOR_ACTIVE;
+            case SWITCH_TO_UPS -> OperatingMode.UPS_ACTIVE;
+            case REDUCE_LOAD, SHED_NON_CRITICAL_LOAD, LOAD_SHED -> OperatingMode.LOAD_REDUCED;
+            case EMERGENCY_PROTECTION -> OperatingMode.PROTECTED;
+            case RESTORE_GRID -> OperatingMode.NORMAL;
+        };
+        mode.set(next);
+        log.info("[DEVICE] action={} operatingMode={}", command, next);
+        return next;
     }
 }

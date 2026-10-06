@@ -19,32 +19,23 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 @Validated
 public class DeviceCommandController {
-
     private final DeviceStateService deviceStateService;
     private final CommandVerificationService verificationService;
 
     @GetMapping("/state")
-    public DeviceState getState() {
-        return deviceStateService.current();
-    }
+    public DeviceState getState() { return deviceStateService.current(); }
+
+    @GetMapping("/operating-mode")
+    public DeviceStateService.OperatingMode getOperatingMode() { return deviceStateService.operatingMode(); }
 
     @PostMapping("/command")
     public DeviceState command(@RequestBody @Valid SignedCommandDTO signed) {
-        CommandSigningContext context = verificationService.verify(
-                signed.signatureBase64(), signed.canonicalJson()
-        );
-
-        DeviceCommand command;
-        try {
-            command = DeviceCommand.valueOf(context.action());
-        } catch (IllegalArgumentException e) {
-            throw new UnknownCommandException(context.action());
-        }
-
+        CommandSigningContext context = verificationService.verify(signed.signatureBase64(), signed.canonicalJson());
+        final DeviceCommand command;
+        try { command = DeviceCommand.valueOf(context.action()); }
+        catch (IllegalArgumentException e) { throw new UnknownCommandException(context.action()); }
         log.info("[COMMAND] Verified {} for device={}", command, context.deviceId());
-        return switch (command) {
-            case SHUTDOWN -> deviceStateService.shutdown();
-            case RESTART  -> deviceStateService.restart();
-        };
+        deviceStateService.execute(command);
+        return DeviceState.ACTIVE;
     }
 }

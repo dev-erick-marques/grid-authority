@@ -47,10 +47,7 @@ public class MqttCommandSubscriber {
                         signed.signatureBase64(), signed.canonicalJson());
 
                 DeviceCommand command = DeviceCommand.valueOf(context.action());
-                switch (command) {
-                    case SHUTDOWN -> deviceStateService.shutdown();
-                    case RESTART  -> deviceStateService.restart();
-                }
+                deviceStateService.execute(command);
 
             } catch (IllegalArgumentException e) {
                 log.error("[MQTT] Unknown command topic={} — {}", t, e.getMessage());

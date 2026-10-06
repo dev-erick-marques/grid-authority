@@ -1,7 +1,5 @@
 package com.gridauthority.device.api;
 
-import com.gridauthority.device.domain.exception.DeviceAlreadyActiveException;
-import com.gridauthority.device.domain.exception.DeviceAlreadyShutdownException;
 import com.gridauthority.device.domain.exception.SignatureVerificationException;
 import com.gridauthority.device.domain.exception.UnknownCommandException;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +21,7 @@ import java.util.Map;
 public class DeviceExceptionHandler {
 
     public enum ErrorCode {
-        DEVICE_ALREADY_SHUTDOWN,
-        DEVICE_ALREADY_ACTIVE,
+
         UNKNOWN_COMMAND,
         SIGNATURE_VERIFICATION_FAILED,
         VALIDATION_ERROR
@@ -35,16 +32,6 @@ public class DeviceExceptionHandler {
         problem.setProperty("timestamp", Instant.now());
         problem.setProperty("errorCode", errorCode.name());
         return problem;
-    }
-
-    @ExceptionHandler(DeviceAlreadyShutdownException.class)
-    public ProblemDetail handleAlreadyShutdown(DeviceAlreadyShutdownException ex) {
-        return buildProblemDetail(HttpStatus.CONFLICT, ex.getMessage(), ErrorCode.DEVICE_ALREADY_SHUTDOWN);
-    }
-
-    @ExceptionHandler(DeviceAlreadyActiveException.class)
-    public ProblemDetail handleAlreadyActive(DeviceAlreadyActiveException ex) {
-        return buildProblemDetail(HttpStatus.CONFLICT, ex.getMessage(), ErrorCode.DEVICE_ALREADY_ACTIVE);
     }
 
     @ExceptionHandler(UnknownCommandException.class)
