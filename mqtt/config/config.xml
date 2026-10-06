@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<hivemq>
+
+  <listeners>
+    <tls-tcp-listener>
+      <port>8883</port>
+      <bind-address>0.0.0.0</bind-address>
+      <tls>
+        <keystore>
+          <path>/opt/hivemq/conf/keystore.jks</path>
+          <password>gridauth</password>
+          <private-key-password>gridauth</private-key-password>
+        </keystore>
+        <client-authentication-mode>NONE</client-authentication-mode>
+      </tls>
+    </tls-tcp-listener>
+
+    <tcp-listener>
+      <port>1883</port>
+      <bind-address>0.0.0.0</bind-address>
+    </tcp-listener>
+
+  </listeners>
+
+  <anonymous-usage-statistics>
+    <enabled>false</enabled>
+  </anonymous-usage-statistics>
+
+</hivemq>
