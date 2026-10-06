@@ -34,7 +34,10 @@ public class VoltageWindowRepository {
             long expected = Math.max(window.size(), spanMs / Math.max(1, expectedIntervalMs) + 1);
             long ageMs = Math.max(0, Duration.between(latest.timestamp(), Instant.now()).toMillis());
             double[] values = window.stream().mapToDouble(Sample::voltage).toArray();
-            return Optional.of(new ObservationWindow(values, window.size(), expected, ageMs));
+            double intervalSeconds = window.size() > 1 && spanMs > 0
+                    ? spanMs / (double) (window.size() - 1) / 1000.0
+                    : expectedIntervalMs / 1000.0;
+            return Optional.of(new ObservationWindow(values, window.size(), expected, ageMs, intervalSeconds));
         }
     }
 
