@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CommandVerificationService {
 
-    private final HcsKeyResolver hcsKeyResolver;
+    private final AuthorityKeyResolver authorityKeyResolver;
     private final SignatureVerificationProperties verificationProperties;
     private final ObjectMapper objectMapper;
 
@@ -39,12 +39,11 @@ public class CommandVerificationService {
     }
 
     public CommandSigningContext verify(String signatureBase64, String canonicalJson) {
-        PublicKey publicKey = hcsKeyResolver.getResolvedPublicKey();
+        PublicKey publicKey = authorityKeyResolver.getResolvedPublicKey();
 
         if (publicKey == null) {
             throw new SignatureVerificationException(
-                    "Public key not resolved from HCS — cannot verify command. " +
-                            "Check hcs.public-key-topic-id.");
+                    "Public key not resolved from coordinator — cannot verify command.");
         }
 
         verifySignature(signatureBase64, canonicalJson, publicKey);

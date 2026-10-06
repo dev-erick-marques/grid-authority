@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 class CommandVerificationServiceTest {
 
     private KeyPair keyPair;
-    private HcsKeyResolver hcsKeyResolver;
+    private AuthorityKeyResolver authorityKeyResolver;
     private SignatureVerificationProperties properties;
     private CommandVerificationService service;
     private ObjectMapper objectMapper;
@@ -33,37 +33,37 @@ class CommandVerificationServiceTest {
         gen.initialize(256);
         keyPair = gen.generateKeyPair();
 
-        hcsKeyResolver = mock(HcsKeyResolver.class);
-        when(hcsKeyResolver.getResolvedPublicKey()).thenReturn(keyPair.getPublic());
+        authorityKeyResolver = mock(AuthorityKeyResolver.class);
+        when(authorityKeyResolver.getResolvedPublicKey()).thenReturn(keyPair.getPublic());
 
         properties = new SignatureVerificationProperties();
         properties.setTimestampToleranceMs(30_000);
 
         objectMapper = new ObjectMapper();
 
-        service = new CommandVerificationService(hcsKeyResolver, properties, objectMapper);
+        service = new CommandVerificationService(authorityKeyResolver, properties, objectMapper);
         service.init();
     }
 
     @Test
     void validSignatureShouldPassAndReturnContext() throws Exception {
         String commandId = UUID.randomUUID().toString();
-        String canonical = buildCanonical("SHUTDOWN", commandId, "device-01", System.currentTimeMillis());
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", commandId, "device-01", System.currentTimeMillis());
         String sig = sign(canonical, keyPair.getPrivate());
 
         CommandSigningContext ctx = service.verify(sig, canonical);
 
-        assertThat(ctx.action()).isEqualTo("SHUTDOWN");
+        assertThat(ctx.action()).isEqualTo("EMERGENCY_PROTECTION");
         assertThat(ctx.commandId()).isEqualTo(commandId);
         assertThat(ctx.deviceId()).isEqualTo("device-01");
     }
 
     @Test
     void tamperedCanonicalShouldFail() throws Exception {
-        String canonical = buildCanonical("SHUTDOWN", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
         String sig = sign(canonical, keyPair.getPrivate());
 
-        String tampered = canonical.replace("SHUTDOWN", "RESTART");
+        String tampered = canonical.replace("EMERGENCY_PROTECTION", "RESTORE_GRID");
 
         assertThatThrownBy(() -> service.verify(sig, tampered))
                 .isInstanceOf(SignatureVerificationException.class);
@@ -75,7 +75,7 @@ class CommandVerificationServiceTest {
         gen.initialize(256);
         KeyPair other = gen.generateKeyPair();
 
-        String canonical = buildCanonical("SHUTDOWN", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
         String sig = sign(canonical, other.getPrivate());
 
         assertThatThrownBy(() -> service.verify(sig, canonical))
@@ -84,7 +84,7 @@ class CommandVerificationServiceTest {
 
     @Test
     void expiredTimestampShouldFail() throws Exception {
-        String canonical = buildCanonical("SHUTDOWN", UUID.randomUUID().toString(), "device-01",
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", UUID.randomUUID().toString(), "device-01",
                 System.currentTimeMillis() - 60_000);
         String sig = sign(canonical, keyPair.getPrivate());
 
@@ -95,7 +95,7 @@ class CommandVerificationServiceTest {
 
     @Test
     void futureTimestampShouldFail() throws Exception {
-        String canonical = buildCanonical("SHUTDOWN", UUID.randomUUID().toString(), "device-01",
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", UUID.randomUUID().toString(), "device-01",
                 System.currentTimeMillis() + 60_000);
         String sig = sign(canonical, keyPair.getPrivate());
 
@@ -106,8 +106,8 @@ class CommandVerificationServiceTest {
 
     @Test
     void unresolvedPublicKeyShouldFail() throws Exception {
-        when(hcsKeyResolver.getResolvedPublicKey()).thenReturn(null);
-        String canonical = buildCanonical("SHUTDOWN", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
+        when(authorityKeyResolver.getResolvedPublicKey()).thenReturn(null);
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
         String sig = sign(canonical, keyPair.getPrivate());
 
         assertThatThrownBy(() -> service.verify(sig, canonical))
@@ -117,7 +117,7 @@ class CommandVerificationServiceTest {
 
     @Test
     void malformedBase64SignatureShouldFail() throws Exception {
-        String canonical = buildCanonical("SHUTDOWN", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", UUID.randomUUID().toString(), "device-01", System.currentTimeMillis());
 
         assertThatThrownBy(() -> service.verify("!!!not-base64!!!", canonical))
                 .isInstanceOf(SignatureVerificationException.class);
@@ -126,7 +126,7 @@ class CommandVerificationServiceTest {
     @Test
     void replayWithinWindowShouldFail() throws Exception {
         String commandId = UUID.randomUUID().toString();
-        String canonical = buildCanonical("SHUTDOWN", commandId, "device-01", System.currentTimeMillis());
+        String canonical = buildCanonical("EMERGENCY_PROTECTION", commandId, "device-01", System.currentTimeMillis());
         String sig = sign(canonical, keyPair.getPrivate());
 
         service.verify(sig, canonical);
@@ -141,17 +141,17 @@ class CommandVerificationServiceTest {
         long issuedAt = System.currentTimeMillis();
         String deviceId = "device-01";
 
-        String canonical1 = buildCanonical("SHUTDOWN", UUID.randomUUID().toString(), deviceId, issuedAt);
+        String canonical1 = buildCanonical("EMERGENCY_PROTECTION", UUID.randomUUID().toString(), deviceId, issuedAt);
         String sig1 = sign(canonical1, keyPair.getPrivate());
 
-        String canonical2 = buildCanonical("RESTART", UUID.randomUUID().toString(), deviceId, issuedAt);
+        String canonical2 = buildCanonical("RESTORE_GRID", UUID.randomUUID().toString(), deviceId, issuedAt);
         String sig2 = sign(canonical2, keyPair.getPrivate());
 
         CommandSigningContext ctx1 = service.verify(sig1, canonical1);
         CommandSigningContext ctx2 = service.verify(sig2, canonical2);
 
-        assertThat(ctx1.action()).isEqualTo("SHUTDOWN");
-        assertThat(ctx2.action()).isEqualTo("RESTART");
+        assertThat(ctx1.action()).isEqualTo("EMERGENCY_PROTECTION");
+        assertThat(ctx2.action()).isEqualTo("RESTORE_GRID");
     }
 
 

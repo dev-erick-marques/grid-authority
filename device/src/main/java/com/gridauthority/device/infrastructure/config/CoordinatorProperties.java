@@ -8,5 +8,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 @ConfigurationProperties(prefix = "coordinator")
 public class CoordinatorProperties {
-    private String url;
+    private String url = "http://coordinator:8080";
 }
