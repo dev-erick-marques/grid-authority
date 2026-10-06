@@ -8,7 +8,6 @@ class PayloadHasherTest {
 
     @Test
     void sha256_shouldReturnKnownHash_forKnownInput() {
-        // echo -n "hello" | sha256sum → 2cf24dba...
         String hash = PayloadHasher.sha256("hello");
         assertThat(hash).isEqualTo("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
     }
@@ -38,7 +37,6 @@ class PayloadHasherTest {
 
     @Test
     void sha256_shouldHandleEmptyString() {
-        // SHA-256 of "" is well-defined
         String hash = PayloadHasher.sha256("");
         assertThat(hash).isEqualTo("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }

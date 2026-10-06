@@ -28,7 +28,6 @@ class CanonicalJsonMapperTest {
 
         String json = mapper.writeCanonicalAsString(ctx);
 
-        // alphabetical: action < commandId < deviceId < issuedAt
         int actionIdx    = json.indexOf("\"action\"");
         int commandIdIdx = json.indexOf("\"commandId\"");
         int deviceIdIdx  = json.indexOf("\"deviceId\"");
@@ -53,7 +52,6 @@ class CanonicalJsonMapperTest {
 
     @Test
     void writeCanonical_shouldSortMapKeysDeterministically() {
-        // Map with keys in non-alphabetical order
         Map<String, Object> payload = Map.of("z", 1, "a", 2, "m", 3);
 
         String json = mapper.writeCanonicalAsString(payload);

@@ -11,10 +11,6 @@ import org.springframework.stereotype.Service;
 @Getter
 public class StabilityEvaluator {
 
-    // Proactive instability threshold (fixed, not user-configurable)
-    // 10% Coefficient of Variation (CV) over short sliding window (default: 10 seconds)
-    // Chosen conservatively to trigger protection early — before a sustained violation of
-    // EN 50160 limits (±10% of nominal on 10-minute rms averages for 95% of a week).
     private static final double THRESHOLD_CV = 10.0;
 
     @Value("${stability.stable-cycles-required}")

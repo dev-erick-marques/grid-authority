@@ -154,10 +154,8 @@ class CommandVerificationServiceTest {
         assertThat(ctx2.action()).isEqualTo("RESTART");
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────────
 
     private String buildCanonical(String action, String commandId, String deviceId, long issuedAt) {
-        // matches CanonicalJsonMapper alphabetical ordering: action < commandId < deviceId < issuedAt
         return String.format(
                 "{\"action\":\"%s\",\"commandId\":\"%s\",\"deviceId\":\"%s\",\"issuedAt\":%d}",
                 action, commandId, deviceId, issuedAt);

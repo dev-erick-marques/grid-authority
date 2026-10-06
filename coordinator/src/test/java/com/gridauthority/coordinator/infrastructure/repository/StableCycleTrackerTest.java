@@ -35,7 +35,7 @@ class StableCycleTrackerTest {
         tracker.record("device-1", DeviceCommand.KEEP_RUNNING, CAP);
         tracker.record("device-1", DeviceCommand.KEEP_RUNNING, CAP);
         tracker.record("device-1", DeviceCommand.KEEP_RUNNING, CAP);
-        tracker.record("device-1", DeviceCommand.KEEP_RUNNING, CAP); // extra
+        tracker.record("device-1", DeviceCommand.KEEP_RUNNING, CAP);
 
         assertThat(tracker.getStableCycles("device-1")).isEqualTo(CAP);
     }

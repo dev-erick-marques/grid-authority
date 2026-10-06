@@ -18,7 +18,6 @@ class StabilityEvaluatorTest {
         ReflectionTestUtils.setField(evaluator, "stableCyclesRequired", 60);
     }
 
-    // --- SHUTDOWN ---
 
     @Test
     void evaluate_shouldReturnShutdown_whenCvExceedsThreshold() {
@@ -34,16 +33,13 @@ class StabilityEvaluatorTest {
 
     @Test
     void evaluate_shouldReturnShutdown_whenCvExceedsThreshold_andDeviceAlreadyShutdown() {
-        // CV spike overrides state — always SHUTDOWN when unstable
         DeviceCommand result = evaluator.evaluate(15.0, DeviceState.SHUTDOWN, 100);
         assertThat(result).isEqualTo(DeviceCommand.SHUTDOWN);
     }
 
-    // --- KEEP_RUNNING ---
 
     @Test
     void evaluate_shouldReturnKeepRunning_whenCvAtExactThreshold() {
-        // EN 50160: threshold is > 10.0, so exactly 10.0 is safe
         DeviceCommand result = evaluator.evaluate(10.0, DeviceState.ACTIVE, 0);
         assertThat(result).isEqualTo(DeviceCommand.KEEP_RUNNING);
     }
@@ -66,7 +62,6 @@ class StabilityEvaluatorTest {
         assertThat(result).isEqualTo(DeviceCommand.KEEP_RUNNING);
     }
 
-    // --- RESTART ---
 
     @Test
     void evaluate_shouldReturnRestart_whenCvBelowThreshold_andDeviceShutdown_andStableCyclesMet() {
@@ -82,12 +77,10 @@ class StabilityEvaluatorTest {
 
     @Test
     void evaluate_shouldNotReturnRestart_whenDeviceIsAlreadyActive() {
-        // RESTART only applies when device is SHUTDOWN
         DeviceCommand result = evaluator.evaluate(5.0, DeviceState.ACTIVE, 60);
         assertThat(result).isEqualTo(DeviceCommand.KEEP_RUNNING);
     }
 
-    // --- getThreshold ---
 
     @Test
     void getThreshold_shouldReturnEN50160Standard() {

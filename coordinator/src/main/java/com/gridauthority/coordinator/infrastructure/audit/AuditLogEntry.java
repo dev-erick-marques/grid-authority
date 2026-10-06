@@ -10,8 +10,8 @@ import lombok.Builder;
 @Builder
 public record AuditLogEntry(
 
-        @JsonProperty("type")      String type,       // KMS_SIGNED | HCS_ANCHORED | HCS_ERROR
-        @JsonProperty("eventType") String eventType,  // DECISION | SURGE | AUTHORITY_KEY_PUBLISHED_ON_BOOT
+        @JsonProperty("type")      String type,
+        @JsonProperty("eventType") String eventType,
         @JsonProperty("deviceId")  String deviceId,
         @JsonProperty("action")    String action,
         @JsonProperty("keyId")     String keyId,
