@@ -7,29 +7,48 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayDeque;
 import java.util.concurrent.ConcurrentHashMap;
 
+
+/**
+ * Rate-limits automatic actions per device.
+ * <ul>
+ *   <li>Every action has a per-action cooldown.</li>
+ *   <li>Routine actions share an hourly budget ({@code maxAutomaticActionsPerHour}).</li>
+ *   <li>Safety-critical actions (see {@link DeviceCommand#isSafetyCritical()}) are NOT subject to the hourly
+ *       budget, so routine traffic can never prevent an emergency or a generator start.</li>
+ * </ul>
+ */
 @Service
 public class ActionExecutionGuard {
+
+    public enum Result { ALLOWED, BLOCKED_COOLDOWN, BLOCKED_HOURLY_BUDGET }
+
+    private static final long HOUR_MS = 3_600_000L;
     private final ConcurrentHashMap<String, DeviceHistory> history = new ConcurrentHashMap<>();
 
-    public synchronized boolean allow(String deviceId, DeviceCommand action, PolicyDTO policy, long nowMs) {
-        if (action == DeviceCommand.OBSERVE || action == DeviceCommand.WARN) return true;
+    public boolean allow(String deviceId, DeviceCommand action, PolicyDTO policy, long nowMs) {
+        return evaluate(deviceId, action, policy, nowMs) == Result.ALLOWED;
+    }
+
+    public synchronized Result evaluate(String deviceId, DeviceCommand action, PolicyDTO policy, long nowMs) {
+        if (action == DeviceCommand.OBSERVE || action == DeviceCommand.WARN) return Result.ALLOWED;
         DeviceHistory h = history.computeIfAbsent(deviceId, k -> new DeviceHistory());
-        long cooldownMs = policy.cooldownSeconds() * 1000L;
+
         Long last = h.lastByAction.get(action);
+        if (last != null && nowMs - last < policy.cooldownSeconds() * 1000L) return Result.BLOCKED_COOLDOWN;
 
-        if (last != null && nowMs - last < cooldownMs) return false;
-
-        while (!h.timestamps.isEmpty() && nowMs - h.timestamps.peekFirst() >= 3_600_000L) h.timestamps.removeFirst();
-
-        if (h.timestamps.size() >= policy.maxAutomaticActionsPerHour()) return false;
-
+        if (!action.isSafetyCritical()) {
+            while (!h.routineTimestamps.isEmpty() && nowMs - h.routineTimestamps.peekFirst() >= HOUR_MS) {
+                h.routineTimestamps.removeFirst();
+            }
+            if (h.routineTimestamps.size() >= policy.maxAutomaticActionsPerHour()) return Result.BLOCKED_HOURLY_BUDGET;
+            h.routineTimestamps.addLast(nowMs);
+        }
         h.lastByAction.put(action, nowMs);
-        h.timestamps.addLast(nowMs);
-        return true;
+        return Result.ALLOWED;
     }
 
     private static final class DeviceHistory {
         private final ConcurrentHashMap<DeviceCommand, Long> lastByAction = new ConcurrentHashMap<>();
-        private final ArrayDeque<Long> timestamps = new ArrayDeque<>();
+        private final ArrayDeque<Long> routineTimestamps = new ArrayDeque<>();
     }
 }
