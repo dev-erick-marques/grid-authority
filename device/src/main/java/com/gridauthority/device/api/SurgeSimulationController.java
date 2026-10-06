@@ -45,10 +45,13 @@ public class SurgeSimulationController {
 
         return switch (surgeAction) {
             case SURGE_START -> { surgeModeService.forceSurge();
-                yield ResponseEntity.ok(new SurgeResponse("surge activated", true));
+                yield ResponseEntity.ok(new SurgeResponse("swell started", true));
+            }
+            case SAG_START -> { surgeModeService.forceSag();
+                yield ResponseEntity.ok(new SurgeResponse("sag started", true));
             }
             case SURGE_STOP -> { surgeModeService.forceNormal();
-                yield ResponseEntity.ok(new SurgeResponse("surge deactivated", false));
+                yield ResponseEntity.ok(new SurgeResponse("recovery started", surgeModeService.isSurgeActive()));
             }
             case SURGE_CYCLE_START -> { surgeModeService.startAutoCycle();
                 yield ResponseEntity.ok(new SurgeResponse("auto cycle started", surgeModeService.isSurgeActive()));

@@ -11,6 +11,7 @@ public class CoordinatorSurgeService {
  private final DeviceRegistry registry; private final SurgeTransport transport; private final DeviceSurgeStateRepository repo; private final LocalSigningService signing;
  public DeviceSurgeState getSurgeState(String id){return repo.get(id);}
  public void startSurge(String id){dispatch(id,DeviceSurgeState.SURGE_ACTIVE,"SURGE_START");}
+ public void startSag(String id){dispatch(id,DeviceSurgeState.SAG_ACTIVE,"SAG_START");}
  public void stopSurge(String id){dispatch(id,DeviceSurgeState.INACTIVE,"SURGE_STOP");}
  public void startCycle(String id){dispatch(id,DeviceSurgeState.CYCLE_ACTIVE,"SURGE_CYCLE_START");}
  public void stopCycle(String id){dispatch(id,DeviceSurgeState.INACTIVE,"SURGE_CYCLE_STOP");}

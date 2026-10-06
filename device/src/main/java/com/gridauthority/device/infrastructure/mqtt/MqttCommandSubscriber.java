@@ -70,6 +70,7 @@ public class MqttCommandSubscriber {
                 SurgeAction surgeAction = SurgeAction.valueOf(context.action());
                 switch (surgeAction) {
                     case SURGE_START       -> surgeModeService.forceSurge();
+                    case SAG_START         -> surgeModeService.forceSag();
                     case SURGE_STOP        -> surgeModeService.forceNormal();
                     case SURGE_CYCLE_START -> surgeModeService.startAutoCycle();
                     case SURGE_CYCLE_STOP  -> surgeModeService.stopAutoCycle();

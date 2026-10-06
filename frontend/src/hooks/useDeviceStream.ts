@@ -1,6 +1,6 @@
 import { useState,useEffect,useRef } from 'react'
 export type DeviceState='ACTIVE'
-export type DeviceSurgeState='INACTIVE'|'SURGE_ACTIVE'|'CYCLE_ACTIVE'
+export type DeviceSurgeState='INACTIVE'|'SURGE_ACTIVE'|'SAG_ACTIVE'|'CYCLE_ACTIVE'
 export interface ChartEntry {
  t:number; mean:number; std:number; cv:number; trend:number; riskScore:number; forecast:number;
  timeToThreshold:number|null; confidence:number; observabilityScore:number; baselineDeviation:number;

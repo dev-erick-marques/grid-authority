@@ -60,6 +60,11 @@ function surgeCardStyle(surgeState: DeviceSurgeState) {
         boxShadow: '0 0 60px rgba(255,159,67,0.1), inset 0 0 50px rgba(255,159,67,0.04)',
         accentGradient: 'linear-gradient(90deg, transparent, rgba(255,159,67,0.5), transparent)',
     }
+    if (surgeState === 'SAG_ACTIVE') return {
+        border: '1px solid rgba(72,160,255,0.45)',
+        boxShadow: '0 0 60px rgba(72,160,255,0.1), inset 0 0 50px rgba(72,160,255,0.04)',
+        accentGradient: 'linear-gradient(90deg, transparent, rgba(72,160,255,0.5), transparent)',
+    }
     if (surgeState === 'CYCLE_ACTIVE') return {
         border: '1px solid rgba(162,155,254,0.45)',
         boxShadow: '0 0 60px rgba(162,155,254,0.1), inset 0 0 50px rgba(162,155,254,0.04)',

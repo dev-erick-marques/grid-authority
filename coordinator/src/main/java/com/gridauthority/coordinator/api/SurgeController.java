@@ -33,6 +33,11 @@ public class SurgeController {
         return executeAction(deviceId, "SURGE_START", () -> coordinatorSurgeService.startSurge(deviceId));
     }
 
+    @PostMapping("/sag/start")
+    public ResponseEntity<?> startSag(@PathVariable @NotBlank String deviceId) {
+        return executeAction(deviceId, "SAG_START", () -> coordinatorSurgeService.startSag(deviceId));
+    }
+
     @PostMapping("/stop")
     public ResponseEntity<?> stopSurge(@PathVariable @NotBlank String deviceId) {
         return executeAction(deviceId, "SURGE_STOP", () -> coordinatorSurgeService.stopSurge(deviceId));

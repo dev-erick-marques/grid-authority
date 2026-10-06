@@ -4,7 +4,8 @@ import { useSurge } from '../hooks/useSurge'
 
 const SURGE_CONFIG: Record<DeviceSurgeState, { label: string; color: string; glow: string }> = {
     INACTIVE: { label: 'INACTIVE', color: '#3a4050', glow: 'transparent' },
-    SURGE_ACTIVE: { label: 'SURGE ACTIVE', color: '#ff9f43', glow: 'rgba(255,159,67,0.35)' },
+    SURGE_ACTIVE: { label: 'SWELL ACTIVE', color: '#ff9f43', glow: 'rgba(255,159,67,0.35)' },
+    SAG_ACTIVE: { label: 'SAG ACTIVE', color: '#48a0ff', glow: 'rgba(72,160,255,0.35)' },
     CYCLE_ACTIVE: { label: 'CYCLE ACTIVE', color: '#a29bfe', glow: 'rgba(162,155,254,0.35)' },
 }
 
@@ -69,8 +70,9 @@ export function SurgePanel({ deviceId, streamSurgeState }: SurgePanelProps) {
     const effective = localState ?? streamSurgeState
     const cfg = SURGE_CONFIG[effective]
     const isSurge = effective === 'SURGE_ACTIVE'
+    const isSag = effective === 'SAG_ACTIVE'
     const isCycle = effective === 'CYCLE_ACTIVE'
-    const isActive = isSurge || isCycle
+    const isActive = isSurge || isSag || isCycle
 
     return (
         <div
@@ -95,16 +97,24 @@ export function SurgePanel({ deviceId, streamSurgeState }: SurgePanelProps) {
 
             <div className="surge-panel__grid">
                 <SurgeBtn
-                    label={isSurge ? '⚡ Stop Surge' : '⚡ Force Surge'}
-                    description="Manual voltage spike"
+                    label={isSurge ? '⚡ Recover' : '⚡ Voltage Swell'}
+                    description="Gradual overvoltage"
                     active={isSurge}
                     color="#ff9f43"
                     loading={loading}
                     onClick={() => trigger(isSurge ? 'stop' : 'start')}
                 />
                 <SurgeBtn
+                    label={isSag ? '▼ Recover' : '▼ Voltage Sag'}
+                    description="Gradual undervoltage"
+                    active={isSag}
+                    color="#48a0ff"
+                    loading={loading}
+                    onClick={() => trigger(isSag ? 'stop' : 'sag/start')}
+                />
+                <SurgeBtn
                     label={isCycle ? '↺ Stop Cycle' : '↺ Auto Cycle'}
-                    description="Periodic surge loop"
+                    description="Random sag/swell events"
                     active={isCycle}
                     color="#a29bfe"
                     loading={loading}

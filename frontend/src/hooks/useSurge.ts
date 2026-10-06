@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import type { DeviceSurgeState } from './useDeviceStream'
 
 
-type SurgeAction = 'start' | 'stop' | 'cycle/start' | 'cycle/stop'
+type SurgeAction = 'start' | 'sag/start' | 'stop' | 'cycle/start' | 'cycle/stop'
 
 interface UseSurgeReturn {
   surgeState: DeviceSurgeState | null
