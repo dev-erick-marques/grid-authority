@@ -1,43 +1,59 @@
 package com.gridauthority.coordinator.infrastructure.repository;
 
 import com.gridauthority.coordinator.application.dto.DeviceTelemetryDTO;
+import com.gridauthority.coordinator.observability.ObservationWindow;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class VoltageWindowRepository {
+    @Value("${voltage.repository.window.size:30}")
+    private int windowSize;
 
-    @Value("${voltage.repository.window.size:10}")
-    private int WINDOW_SIZE;
+    @Value("${telemetry.sample-interval-ms:1000}")
+    private long expectedIntervalMs;
 
-    private final ConcurrentHashMap<String, ArrayBlockingQueue<Double>> windows =
-            new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ArrayDeque<Sample>> windows = new ConcurrentHashMap<>();
 
+    public Optional<ObservationWindow> recordAndGet(DeviceTelemetryDTO dto) {
+        ArrayDeque<Sample> window = windows.computeIfAbsent(dto.deviceId(), k -> new ArrayDeque<>(windowSize));
+        synchronized (window) {
+            if (window.size() == windowSize) window.removeFirst();
+            window.addLast(new Sample(dto.voltage(), dto.timestamp()));
+            if (window.size() < windowSize) return Optional.empty();
 
-    public void record(String deviceId, double voltage) {
-        ArrayBlockingQueue<Double> window = windows
-                .computeIfAbsent(deviceId, k -> new ArrayBlockingQueue<>(WINDOW_SIZE));
-
-        if (!window.offer(voltage)) {
-            window.poll();
-            window.offer(voltage);
+            Sample first = window.peekFirst();
+            Sample latest = window.peekLast();
+            long spanMs = Math.max(0, Duration.between(first.timestamp(), latest.timestamp()).toMillis());
+            long expected = Math.max(window.size(), spanMs / Math.max(1, expectedIntervalMs) + 1);
+            long ageMs = Math.max(0, Duration.between(latest.timestamp(), Instant.now()).toMillis());
+            double[] values = window.stream().mapToDouble(Sample::voltage).toArray();
+            return Optional.of(new ObservationWindow(values, window.size(), expected, ageMs));
         }
     }
 
     public Optional<double[]> getWindowIfFull(String deviceId) {
-        ArrayBlockingQueue<Double> window = windows.get(deviceId);
-        if (window == null || window.size() < WINDOW_SIZE) {
-            return Optional.empty();
+        ArrayDeque<Sample> window = windows.get(deviceId);
+        if (window == null) return Optional.empty();
+        synchronized (window) {
+            if (window.size() < windowSize) return Optional.empty();
+            return Optional.of(window.stream().mapToDouble(Sample::voltage).toArray());
         }
-        return Optional.of(window.stream().mapToDouble(Double::doubleValue).toArray());
     }
 
-    public Optional<double[]> recordAndGet(DeviceTelemetryDTO dto) {
-        record(dto.deviceId(), dto.voltage());
-        return getWindowIfFull(dto.deviceId());
+    public void record(String deviceId, double voltage) {
+        ArrayDeque<Sample> window = windows.computeIfAbsent(deviceId, k -> new ArrayDeque<>(windowSize));
+        synchronized (window) {
+            if (window.size() == windowSize) window.removeFirst();
+            window.addLast(new Sample(voltage, Instant.now()));
+        }
     }
+
+    private record Sample(double voltage, Instant timestamp) {}
 }

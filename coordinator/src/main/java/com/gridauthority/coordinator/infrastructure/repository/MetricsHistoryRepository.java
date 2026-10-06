@@ -31,7 +31,7 @@ public class MetricsHistoryRepository {
                 k -> new ArrayBlockingQueue<>(HISTORY_SIZE)
         );
 
-        assert history != null;
+        if (history == null) { throw new IllegalStateException("Metrics history cache returned null"); }
         if (!history.offer(metrics)) {
             history.poll();
             history.offer(metrics);

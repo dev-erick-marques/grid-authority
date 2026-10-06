@@ -108,11 +108,19 @@ class MetricsHistoryRepositoryTest {
                 mean,
                 0.1,
                 0.01,
-                DeviceState.SHUTDOWN,
+                DeviceState.ACTIVE,
                 DeviceSurgeState.INACTIVE,
-                1,
-                10,
-                Instant.now()
+                Instant.now(),
+                0.0,
+                0.0,
+                0.0,
+                mean,
+                0.0,
+                1.0,
+                null,
+                1.0,
+                "OBSERVE",
+                12
         );
     }
 }

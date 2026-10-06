@@ -26,7 +26,7 @@ class VoltageWindowRepositoryTest {
     void setUp() throws Exception {
         repository = new VoltageWindowRepository();
 
-        Field field = VoltageWindowRepository.class.getDeclaredField("WINDOW_SIZE");
+        Field field = VoltageWindowRepository.class.getDeclaredField("windowSize");
         field.setAccessible(true);
         field.set(repository, 10);
     }
@@ -51,7 +51,7 @@ class VoltageWindowRepositoryTest {
         Optional<double[]> result = repository.getWindowIfFull("device-1");
 
         assertThat(result).isPresent();
-        assertThat(result.get()).hasSize(10);
+        assertThat(result.get().values()).hasSize(10);
     }
 
     @Test
@@ -78,7 +78,7 @@ class VoltageWindowRepositoryTest {
 
     @Test
     void recordAndGet_shouldReturnEmpty_whenWindowIsNotYetFull() {
-        Optional<double[]> result = repository.recordAndGet(baseTelemetry);
+        var result = repository.recordAndGet(baseTelemetry);
 
         assertThat(result).isEmpty();
     }
@@ -89,20 +89,20 @@ class VoltageWindowRepositoryTest {
             repository.recordAndGet(baseTelemetry);
         }
 
-        Optional<double[]> result = repository.recordAndGet(baseTelemetry);
+        var result = repository.recordAndGet(baseTelemetry);
 
         assertThat(result).isPresent();
-        assertThat(result.get()).hasSize(10);
+        assertThat(result.get().values()).hasSize(10);
     }
 
     @Test
     void recordAndGet_shouldContinueReturningWindow_afterWindowIsFull() {
         fillWindow("device-1", 10, 120.0);
 
-        Optional<double[]> result = repository.recordAndGet(baseTelemetry);
+        var result = repository.recordAndGet(baseTelemetry);
 
         assertThat(result).isPresent();
-        assertThat(result.get()).hasSize(10);
+        assertThat(result.get().values()).hasSize(10);
     }
 
     @Test
@@ -125,11 +125,11 @@ class VoltageWindowRepositoryTest {
         }
 
         latch.await(5, TimeUnit.SECONDS);
-        executor.shutdown();
+        executor.close();
 
         Optional<double[]> result = repository.getWindowIfFull("shared-device");
         assertThat(result).isPresent();
-        assertThat(result.get()).hasSize(10);
+        assertThat(result.get().values()).hasSize(10);
     }
 
     private void fillWindow(String deviceId, int count, double voltage) {

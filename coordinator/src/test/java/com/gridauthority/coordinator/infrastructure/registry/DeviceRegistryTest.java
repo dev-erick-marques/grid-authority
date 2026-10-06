@@ -83,7 +83,7 @@ class DeviceRegistryTest {
         }
 
         latch.await(5, TimeUnit.SECONDS);
-        executor.shutdown();
+        executor.close();
 
         for (int i = 0; i < threads; i++) {
             assertThat(registry.resolve("device-" + i)).isPresent();
